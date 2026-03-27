@@ -95,7 +95,7 @@ def load_model_and_tokenizer(
 
     # Build model loading kwargs
     model_kwargs = {
-        "torch_dtype": torch_dtype,
+        "dtype": torch_dtype,
         "device_map": "auto",
         "trust_remote_code": True,
     }
@@ -119,6 +119,7 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
 
     model.eval()
-    logger.info("Model loaded successfully. Device map: %s", model.hf_device_map)
+    device_map = getattr(model, "hf_device_map", "N/A")
+    logger.info("Model loaded successfully. Device map: %s", device_map)
 
     return model, tokenizer, cfg

@@ -99,10 +99,14 @@ class ActivationCache:
         output tuple) and stores it in self._activations.
         """
         def hook_fn(module, input, output):
-            # Transformer layer output is typically (hidden_states, ...) or
-            # a BaseModelOutputWithPast. Extract the hidden states tensor.
+            # Transformer layer output varies by architecture and version:
+            #   - tuple: (hidden_states, ...) — most common
+            #   - plain Tensor: hidden_states directly — some newer versions
+            #   - BaseModelOutput: has .last_hidden_state attribute
             if isinstance(output, tuple):
                 hidden_states = output[0]
+            elif isinstance(output, torch.Tensor):
+                hidden_states = output
             else:
                 hidden_states = output.last_hidden_state
 
@@ -177,12 +181,16 @@ def record_activations(
     layers: list[int],
     max_new_tokens: int = 256,
     token_position: str = "last",
-    batch_size: int = 4,
 ) -> dict[int, torch.Tensor]:
-    """High-level function to record activations for a list of prompts.
+    """Record activations for a list of prompts under a system prompt condition.
 
-    Formats each prompt as a chat message with the given system prompt,
-    generates a response, and captures activations at specified layers.
+    Uses a two-pass approach for each prompt:
+      1. Generate the response with no hooks (to get the response text).
+      2. Run a single forward pass over prompt+response with hooks registered
+         to capture one clean activation per prompt per layer.
+
+    This avoids the problem of hooks firing on every autoregressive step during
+    generate(), which would produce hundreds of activations per prompt.
 
     Args:
         model: The language model.
@@ -191,55 +199,85 @@ def record_activations(
         system_prompt: System prompt to set the contrastive condition.
         layers: Which layers to record activations from.
         max_new_tokens: Maximum response length.
-        token_position: "last" or "mean" — which token to extract.
-        batch_size: Number of prompts to process at once.
+        token_position: How to extract a single vector from the response.
+            "last" — activation at the last response token.
+            "mean" — mean activation over response tokens only.
 
     Returns:
-        Dict mapping layer index to tensor of shape
-        (num_prompts, hidden_size).
+        Dict mapping layer index to tensor of shape (num_prompts, hidden_size).
     """
     cache = ActivationCache(model, layers=layers)
-    cache.register_hooks()
-
     device = next(model.parameters()).device
 
-    for i in range(0, len(prompts), batch_size):
-        batch = prompts[i : i + batch_size]
+    # Collect one activation per prompt per layer
+    per_prompt: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
 
-        for prompt in batch:
-            # Format as chat messages
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ]
-            input_text = tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=True
+    for i, prompt in enumerate(prompts):
+        # Format as chat messages
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+        input_text = tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True
+        )
+        inputs = tokenizer(input_text, return_tensors="pt").to(device)
+        input_len = inputs["input_ids"].shape[1]
+
+        # --- Pass 1: generate response (no hooks) ---
+        with torch.no_grad():
+            output_ids = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,  # Greedy for reproducibility
+                pad_token_id=tokenizer.pad_token_id,
             )
-            inputs = tokenizer(input_text, return_tensors="pt").to(device)
-            input_len = inputs["input_ids"].shape[1]
 
-            # Clear activations from prompt processing — we only want
-            # activations during response generation
-            cache.clear()
+        # Full sequence = prompt + response
+        full_ids = output_ids[0]  # (total_seq_len,)
+        response_len = len(full_ids) - input_len
 
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=max_new_tokens,
-                    do_sample=False,  # Greedy for reproducibility
-                    pad_token_id=tokenizer.pad_token_id,
-                )
+        if response_len <= 0:
+            logger.warning("Prompt %d produced no response tokens, skipping", i)
+            continue
 
-            # The cache now contains activations from the generation phase.
-            # Note: with greedy generation, each token is generated one at a
-            # time, so we get one activation per generated token.
+        # --- Pass 2: forward pass with hooks to capture activations ---
+        cache.register_hooks()
+        cache.clear()
 
-        logger.debug("Processed batch %d/%d", i + batch_size, len(prompts))
+        with torch.no_grad():
+            model(full_ids.unsqueeze(0))
 
-    activations = cache.get_activations(token_position=token_position)
-    cache.remove_hooks()
+        # Extract activations — cache has exactly 1 recording from this pass.
+        # The recorded tensor has shape (1, total_seq_len, hidden_size).
+        for layer_idx in layers:
+            recordings = cache._activations.get(layer_idx, [])
+            if not recordings:
+                continue
+            hidden = recordings[0][0]  # (total_seq_len, hidden_size)
 
-    return activations
+            # Slice to response tokens only
+            response_hidden = hidden[input_len:]  # (response_len, hidden_size)
+
+            if token_position == "last":
+                per_prompt[layer_idx].append(response_hidden[-1])
+            elif token_position == "mean":
+                per_prompt[layer_idx].append(response_hidden.mean(dim=0))
+            else:
+                raise ValueError(f"Unknown token_position: {token_position}")
+
+        cache.remove_hooks()
+
+        if (i + 1) % 5 == 0 or i == len(prompts) - 1:
+            logger.info("Recorded activations for prompt %d/%d", i + 1, len(prompts))
+
+    # Stack into (num_prompts, hidden_size) per layer
+    result = {}
+    for layer_idx in layers:
+        if per_prompt[layer_idx]:
+            result[layer_idx] = torch.stack(per_prompt[layer_idx])
+
+    return result
 
 
 def save_activations(activations: dict[int, torch.Tensor], output_dir: Path, prefix: str):
