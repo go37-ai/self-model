@@ -1,0 +1,43 @@
+# Model and hardware configuration for self-reification experiments.
+#
+# Usage: select a profile ("local" or "cloud") and a model ("qwen" or "llama")
+# when running experiment scripts. The profile determines dtype and quantization;
+# the model determines architecture-specific settings.
+#
+# Local runs are for DEBUGGING ONLY — quantized activations may not faithfully
+# represent directions in the full-precision model.
+
+profiles:
+  local:
+    device: cuda
+    dtype: float16
+    quantize: true       # 4-bit via bitsandbytes
+    max_batch_size: 4
+  cloud:
+    device: cuda
+    dtype: bfloat16
+    quantize: false
+    max_batch_size: 16
+
+models:
+  qwen:
+    name: Qwen/Qwen2.5-7B-Instruct
+    num_layers: 28
+    hidden_size: 3584
+  llama:
+    name: meta-llama/Llama-3.1-8B-Instruct
+    num_layers: 32
+    hidden_size: 4096
+
+# Layer extraction settings
+extraction:
+  # Extract at all layers by default; select best by split-half reliability
+  all_layers: true
+  # Number of random splits for split-half reliability estimation
+  n_splits: 100
+
+# Activation recording settings
+activation:
+  # Which token position(s) to record activations from during response generation.
+  # Options: "last" (last token of response), "mean" (mean over response tokens)
+  token_position: last

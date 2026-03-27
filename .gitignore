@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files (large, not tracked in git)
+data/results/**/*.pt
+data/results/**/*.npy
+
+# Model weights (never commit these)
+*.bin
+*.safetensors
+
+# OS
+.DS_Store
+Thumbs.db

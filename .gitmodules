@@ -1,0 +1,9 @@
+[submodule "external/persona_vectors"]
+	path = external/persona_vectors
+	url = https://github.com/go37-ai/persona_vectors.git
+[submodule "external/assistant-axis"]
+	path = external/assistant-axis
+	url = https://github.com/go37-ai/assistant-axis.git
+[submodule "external/agentic-misalignment"]
+	path = external/agentic-misalignment
+	url = https://github.com/go37-ai/agentic-misalignment.git
