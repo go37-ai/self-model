@@ -34,20 +34,20 @@ def load_config(config_path: Optional[Path] = None) -> dict:
 
 
 def get_model_config(
-    model_key: str = "qwen",
+    model_key: str = "qwen2",
     profile: str = "local",
     config_path: Optional[Path] = None,
 ) -> dict:
     """Build a combined config dict from profile + model settings.
 
     Args:
-        model_key: Which model to use ("qwen" or "llama").
+        model_key: Which model to use ("qwen2", "qwen3", or "llama").
         profile: Hardware profile ("local" or "cloud").
         config_path: Path to models.yaml.
 
     Returns:
         Dict with keys: name, num_layers, hidden_size, device, dtype,
-        quantize, max_batch_size.
+        quantize, max_batch_size. Cloud models also have target_layer.
     """
     config = load_config(config_path)
     profile_cfg = config["profiles"][profile]
@@ -56,7 +56,7 @@ def get_model_config(
 
 
 def load_model_and_tokenizer(
-    model_key: str = "qwen",
+    model_key: str = "qwen2",
     profile: str = "local",
     config_path: Optional[Path] = None,
 ):
@@ -66,7 +66,7 @@ def load_model_and_tokenizer(
     For cloud profile: loads in BF16 without quantization.
 
     Args:
-        model_key: Which model to use ("qwen" or "llama").
+        model_key: Which model to use ("qwen2", "qwen3", or "llama").
         profile: Hardware profile ("local" or "cloud").
         config_path: Path to models.yaml.
 

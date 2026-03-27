@@ -7,8 +7,8 @@ extracts per-category and combined directions, selects the best layer,
 and runs discriminant validity checks.
 
 Usage:
-    python scripts/01_extract_vector.py --profile local --model qwen
-    python scripts/01_extract_vector.py --profile cloud --model qwen
+    python scripts/01_extract_vector.py --profile local --model qwen2
+    python scripts/01_extract_vector.py --profile cloud --model qwen3
     python scripts/01_extract_vector.py --profile cloud --model llama
 
 All results are saved to data/results/1.1/.
@@ -45,9 +45,9 @@ def parse_args():
     )
     parser.add_argument(
         "--model",
-        choices=["qwen", "llama"],
-        default="qwen",
-        help="Which model to use",
+        choices=["qwen2", "qwen3", "llama"],
+        default="qwen2",
+        help="Which model to use (qwen2=local debug, qwen3/llama=cloud)",
     )
     parser.add_argument(
         "--output-dir",

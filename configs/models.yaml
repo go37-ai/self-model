@@ -4,8 +4,10 @@
 # when running experiment scripts. The profile determines dtype and quantization;
 # the model determines architecture-specific settings.
 #
-# Local runs are for DEBUGGING ONLY — quantized activations may not faithfully
-# represent directions in the full-precision model.
+# Local runs use quantized Qwen 2.5-7B for DEBUGGING ONLY — quantized
+# activations may not faithfully represent directions in the full-precision model.
+# Cloud runs use Qwen3-32B and Llama-3.3-70B, matching the models used in the
+# Assistant Axis paper (Lu et al., 2026) so we can reuse their pre-extracted vectors.
 
 profiles:
   local:
@@ -20,14 +22,25 @@ profiles:
     max_batch_size: 16
 
 models:
-  qwen:
+  # Local debugging only — results not publishable
+  qwen2:
     name: Qwen/Qwen2.5-7B-Instruct
     num_layers: 28
     hidden_size: 3584
+  # Cloud primary — matches assistant-axis paper
+  qwen3:
+    name: Qwen/Qwen3-32B
+    num_layers: 64
+    hidden_size: 5120
+    target_layer: 32           # from assistant-axis config
+    assistant_axis_config: qwen-3-32b/capping_config.pt
+  # Cloud secondary — matches assistant-axis paper
   llama:
-    name: meta-llama/Llama-3.1-8B-Instruct
-    num_layers: 32
-    hidden_size: 4096
+    name: meta-llama/Llama-3.3-70B-Instruct
+    num_layers: 80
+    hidden_size: 8192
+    target_layer: 40           # from assistant-axis config
+    assistant_axis_config: llama-3.3-70b/capping_config.pt
 
 # Layer extraction settings
 extraction:

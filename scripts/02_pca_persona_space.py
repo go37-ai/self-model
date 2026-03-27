@@ -6,8 +6,8 @@ space via PCA on role vectors, and measures alignment with the Assistant
 Axis (PC1).
 
 Usage:
-    python scripts/02_pca_persona_space.py --profile local --model qwen
-    python scripts/02_pca_persona_space.py --profile cloud --model qwen --assistant-axis-path path/to/axis.pt
+    python scripts/02_pca_persona_space.py --profile local --model qwen2
+    python scripts/02_pca_persona_space.py --profile cloud --model qwen3 --assistant-axis-path path/to/axis.pt
     python scripts/02_pca_persona_space.py --role-vectors-dir path/to/vectors/
 
 If no pre-extracted role vectors or Assistant Axis are provided, extracts
@@ -41,9 +41,9 @@ def parse_args():
     )
     parser.add_argument(
         "--model",
-        choices=["qwen", "llama"],
-        default="qwen",
-        help="Which model to use",
+        choices=["qwen2", "qwen3", "llama"],
+        default="qwen2",
+        help="Which model to use (qwen2=local debug, qwen3/llama=cloud)",
     )
     parser.add_argument(
         "--input-dir",
@@ -112,8 +112,10 @@ def main():
     # Load 1.1 results: find the self-reification vector and best layer
     import json
 
-    model_name_map = {"qwen": "Qwen_Qwen2.5-7B-Instruct", "llama": "meta-llama_Llama-3.1-8B-Instruct"}
-    model_name = model_name_map[args.model]
+    # Derive model name from config (used in filenames)
+    from utils.model_loader import get_model_config
+    cfg = get_model_config(args.model, args.profile)
+    model_name = cfg["name"].replace("/", "_")
 
     # Load validation metrics to get best layer
     metrics_path = args.input_dir / "validation_metrics.json"
