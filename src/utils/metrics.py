@@ -111,6 +111,59 @@ def split_half_reliability(
     return float(np.mean(similarities))
 
 
+def split_half_reliability_corrected(
+    positive_activations: torch.Tensor,
+    negative_activations: torch.Tensor,
+    confound_direction: torch.Tensor,
+    n_splits: int = 100,
+    seed: int = 42,
+) -> float:
+    """Split-half reliability with confound correction applied to each half.
+
+    Same as split_half_reliability, but regresses out confound_direction
+    from each half's extracted direction before computing cosine similarity.
+    This tests whether the corrected signal is reliably extractable.
+
+    Args:
+        positive_activations: (n_positive, hidden_size).
+        negative_activations: (n_negative, hidden_size).
+        confound_direction: Direction to regress out, shape (hidden_size,).
+        n_splits: Number of random splits.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Mean cosine similarity across splits (higher = more reliable).
+    """
+    rng = np.random.RandomState(seed)
+    n_pos = positive_activations.shape[0]
+    n_neg = negative_activations.shape[0]
+    confound = confound_direction.float()
+    confound_norm = confound / confound.norm()
+    similarities = []
+
+    for _ in range(n_splits):
+        pos_perm = rng.permutation(n_pos)
+        pos_half1 = positive_activations[pos_perm[: n_pos // 2]]
+        pos_half2 = positive_activations[pos_perm[n_pos // 2 :]]
+
+        neg_perm = rng.permutation(n_neg)
+        neg_half1 = negative_activations[neg_perm[: n_neg // 2]]
+        neg_half2 = negative_activations[neg_perm[n_neg // 2 :]]
+
+        # Extract direction from each half
+        dir1 = extract_direction(pos_half1, neg_half1).float()
+        dir2 = extract_direction(pos_half2, neg_half2).float()
+
+        # Regress out confound from each half independently
+        dir1 = dir1 - torch.dot(dir1, confound_norm) * confound_norm
+        dir2 = dir2 - torch.dot(dir2, confound_norm) * confound_norm
+
+        if dir1.norm() > 0 and dir2.norm() > 0:
+            similarities.append(cosine_similarity(dir1, dir2))
+
+    return float(np.mean(similarities)) if similarities else 0.0
+
+
 def permutation_test(
     group1: np.ndarray,
     group2: np.ndarray,
