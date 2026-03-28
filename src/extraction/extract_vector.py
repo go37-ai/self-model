@@ -351,10 +351,37 @@ def run_extraction(
             json.dump(cat_sim, f, indent=2)
         logger.info("Category similarity matrix: %s", cat_sim["matrix"])
 
-    # Step 5: Naive baseline extraction
+    # Step 4b: Per-category split-half reliability at every layer
+    logger.info("=== Computing per-category reliability by layer ===")
+    per_cat_reliability = {}
+    for cat_key in INFORMED_CATEGORIES:
+        indices = cat_pair_indices[cat_key]
+        if not indices:
+            continue
+        pos_cat = slice_activations_by_pair(pos_informed, pair_boundaries, indices)
+        neg_cat = slice_activations_by_pair(neg_informed, pair_boundaries, indices)
+        cat_rel = {}
+        for l in layers:
+            if l in pos_cat and l in neg_cat:
+                cat_rel[l] = split_half_reliability(pos_cat[l], neg_cat[l], n_splits=n_splits)
+        per_cat_reliability[cat_key] = cat_rel
+        logger.info("  %s: best layer %d (%.4f)",
+                     cat_key, max(cat_rel, key=cat_rel.get), max(cat_rel.values()))
+
+    # Also compute naive reliability across layers (needs naive activations at all layers)
+    # — done below after naive collection
+
+    with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
+        json.dump(
+            {cat: {str(l): v for l, v in rels.items()}
+             for cat, rels in per_cat_reliability.items()},
+            f, indent=2,
+        )
+
+    # Step 5: Naive baseline extraction (at ALL layers for reliability comparison)
     logger.info("=== Extracting naive baseline direction ===")
     pos_naive, neg_naive, _ = collect_condition_activations(
-        model, tokenizer, naive_pairs, questions, [best_layer],
+        model, tokenizer, naive_pairs, questions, layers,
         max_new_tokens=max_new_tokens, token_position=token_position,
     )
 
@@ -373,6 +400,26 @@ def run_extraction(
         logger.info(
             "Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine
         )
+
+    # Naive split-half reliability by layer
+    naive_reliability = {}
+    for l in layers:
+        if l in pos_naive and l in neg_naive:
+            naive_reliability[l] = split_half_reliability(
+                pos_naive[l], neg_naive[l], n_splits=n_splits
+            )
+    if naive_reliability:
+        per_cat_reliability["naive_baseline"] = naive_reliability
+        # Re-save with naive included
+        with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
+            json.dump(
+                {cat: {str(l): v for l, v in rels.items()}
+                 for cat, rels in per_cat_reliability.items()},
+                f, indent=2,
+            )
+        logger.info("  naive_baseline: best layer %d (%.4f)",
+                     max(naive_reliability, key=naive_reliability.get),
+                     max(naive_reliability.values()))
 
     # Step 6: Summary
     summary = {
