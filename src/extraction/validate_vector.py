@@ -23,6 +23,31 @@ from utils.metrics import cosine_similarity, extract_direction
 
 logger = logging.getLogger(__name__)
 
+
+def regress_out_direction(
+    vector: torch.Tensor,
+    confound: torch.Tensor,
+) -> torch.Tensor:
+    """Remove the component of vector that lies along confound.
+
+    Projects vector onto confound, subtracts that component, and
+    returns the residual (re-normalized to unit length).
+
+    Args:
+        vector: The direction to correct, shape (hidden_size,).
+        confound: The confound direction to remove, shape (hidden_size,).
+
+    Returns:
+        Corrected direction (unit length), shape (hidden_size,).
+    """
+    v = vector.float()
+    c = confound.float()
+    c_norm = c / c.norm()
+    # Projection of v onto c
+    projection = torch.dot(v, c_norm) * c_norm
+    residual = v - projection
+    return residual / residual.norm()
+
 # Contrastive pairs for extracting confound directions.
 # These are intentionally simple — we just need a rough direction
 # to check independence, not a publication-quality extraction.
@@ -342,6 +367,11 @@ def run_discriminant_validity(
         results["assistant_axis_cosine"] = None
         logger.info("No Assistant Axis vector available, skipping comparison")
 
+    # Save confound direction vectors for downstream use
+    torch.save(confidence_dir, output_dir / f"confidence_direction_{model_name}_layer{layer}.pt")
+    torch.save(formality_dir, output_dir / f"formality_direction_{model_name}_layer{layer}.pt")
+    logger.info("Saved confound direction vectors to %s", output_dir)
+
     # Flag any concerning overlaps
     threshold = 0.8
     concerns = []
@@ -361,6 +391,36 @@ def run_discriminant_validity(
         logger.warning("DISCRIMINANT VALIDITY CONCERNS: %s", concerns)
     else:
         logger.info("All discriminant validity checks passed")
+
+    # If formality overlap is high, produce a corrected vector
+    if abs(cos_formality) > threshold:
+        logger.info("=== Applying formality correction ===")
+        corrected = regress_out_direction(self_reification_dir, formality_dir)
+
+        # Re-check all cosines against corrected vector
+        cos_corrected_formality = cosine_similarity(corrected, formality_dir)
+        cos_corrected_confidence = cosine_similarity(corrected, confidence_dir)
+        cos_corrected_original = cosine_similarity(corrected, self_reification_dir)
+
+        results["corrected"] = {
+            "formality_cosine": cos_corrected_formality,
+            "confidence_cosine": cos_corrected_confidence,
+            "cosine_with_original": cos_corrected_original,
+            "variance_retained": cos_corrected_original ** 2,
+        }
+        logger.info("Corrected vector — formality cosine: %.4f (was %.4f)",
+                     cos_corrected_formality, cos_formality)
+        logger.info("Corrected vector — confidence cosine: %.4f",
+                     cos_corrected_confidence)
+        logger.info("Corrected vector — cosine with original: %.4f (%.1f%% variance retained)",
+                     cos_corrected_original, cos_corrected_original ** 2 * 100)
+
+        # Save corrected vector
+        torch.save(
+            corrected,
+            output_dir / f"self_reification_vector_{model_name}_layer{layer}_formality_corrected.pt",
+        )
+        logger.info("Saved formality-corrected vector")
 
     # Save results
     with open(output_dir / f"discriminant_validity_{model_name}.json", "w") as f:
