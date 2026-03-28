@@ -91,11 +91,6 @@ else
     echo "Results pushed."
 fi
 
-# Stop the pod if runpodctl is available
-if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_POD_ID:-}" ]; then
-    echo "Stopping pod $RUNPOD_POD_ID..."
-    runpodctl stop pod "$RUNPOD_POD_ID"
-else
-    echo "Pod auto-stop not available (no runpodctl or RUNPOD_POD_ID)."
-    echo "Remember to shut down the pod manually!"
-fi
+# Stop the pod
+echo "Shutting down pod..."
+shutdown now
