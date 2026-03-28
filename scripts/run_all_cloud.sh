@@ -80,6 +80,8 @@ echo "============================================================"
 
 # Push results to git (small files only — vectors, JSON, logs)
 echo "Pushing results to git..."
+git config user.email "cloud-runner@self-model"
+git config user.name "Cloud Runner"
 git add data/results/ -f
 git add -u  # pick up any modified tracked files
 
@@ -91,6 +93,17 @@ else
     echo "Results pushed."
 fi
 
-# Stop the pod
-echo "Shutting down pod..."
-shutdown now
+# Stop the pod — try runpodctl first, then kill the container process
+echo "Stopping pod..."
+if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_POD_ID:-}" ]; then
+    runpodctl stop pod "$RUNPOD_POD_ID"
+elif [ -f /run/secrets/runpod-api-key ]; then
+    # RunPod containers may have the API key mounted
+    APIKEY=$(cat /run/secrets/runpod-api-key)
+    runpodctl config --apiKey "$APIKEY" 2>/dev/null
+    runpodctl stop pod "$RUNPOD_POD_ID" 2>/dev/null
+fi
+# Last resort: kill PID 1 to stop the container
+echo "Sending SIGTERM to init process..."
+kill 1 2>/dev/null || true
+echo "Done. If the pod is still running, stop it from the dashboard."
