@@ -84,6 +84,11 @@ def parse_args():
         default=None,
         help="Path to pre-extracted Assistant Axis vector for comparison",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from cached activations if available (skips informed pair collection)",
+    )
     return parser.parse_args()
 
 
@@ -138,6 +143,7 @@ def main():
         max_new_tokens=args.max_new_tokens,
         token_position=args.token_position,
         n_splits=args.n_splits,
+        resume=args.resume,
     )
     extraction_time = time.time() - start_time
     logger.info("Extraction completed in %.1f seconds (%.1f minutes)",

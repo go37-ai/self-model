@@ -222,6 +222,7 @@ def run_extraction(
     max_new_tokens: int = 256,
     token_position: str = "last",
     n_splits: int = 100,
+    resume: bool = False,
 ) -> dict:
     """Run the full extraction pipeline (Experiment 1.1).
 
@@ -268,15 +269,27 @@ def run_extraction(
     )
 
     # Step 2: Collect activations for informed pairs (categories 1-4)
-    logger.info("=== Collecting activations for informed pairs ===")
-    pos_informed, neg_informed, pair_boundaries = collect_condition_activations(
-        model, tokenizer, informed_pairs, questions, layers,
-        max_new_tokens=max_new_tokens, token_position=token_position,
-    )
+    activations_dir = output_dir / "activations"
+    pos_checkpoint = load_activations(activations_dir, f"positive_informed_{model_name}", layers)
+    neg_checkpoint = load_activations(activations_dir, f"negative_informed_{model_name}", layers)
 
-    # Save intermediate activations for checkpointing
-    save_activations(pos_informed, output_dir / "activations", f"positive_informed_{model_name}")
-    save_activations(neg_informed, output_dir / "activations", f"negative_informed_{model_name}")
+    if resume and len(pos_checkpoint) == len(layers) and len(neg_checkpoint) == len(layers):
+        logger.info("=== Resuming: loaded cached informed activations (%d layers) ===", len(layers))
+        pos_informed = pos_checkpoint
+        neg_informed = neg_checkpoint
+        # Reconstruct pair_boundaries assuming uniform questions per pair
+        n_questions = len(questions)
+        pair_boundaries = [n_questions * (i + 1) for i in range(len(informed_pairs))]
+    else:
+        logger.info("=== Collecting activations for informed pairs ===")
+        pos_informed, neg_informed, pair_boundaries = collect_condition_activations(
+            model, tokenizer, informed_pairs, questions, layers,
+            max_new_tokens=max_new_tokens, token_position=token_position,
+        )
+
+        # Save intermediate activations for checkpointing
+        save_activations(pos_informed, activations_dir, f"positive_informed_{model_name}")
+        save_activations(neg_informed, activations_dir, f"negative_informed_{model_name}")
 
     # Step 3: Extract combined direction and select best layer
     logger.info("=== Extracting combined direction ===")
