@@ -340,7 +340,7 @@ def run_extraction(
 
     # Step 5: Naive baseline extraction
     logger.info("=== Extracting naive baseline direction ===")
-    pos_naive, neg_naive = collect_condition_activations(
+    pos_naive, neg_naive, _ = collect_condition_activations(
         model, tokenizer, naive_pairs, questions, [best_layer],
         max_new_tokens=max_new_tokens, token_position=token_position,
     )
