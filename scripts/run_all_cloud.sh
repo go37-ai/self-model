@@ -64,7 +64,12 @@ for EXP in $EXPERIMENTS; do
 
     case $EXP in
         1.1)
+            OUTDIR="data/results/1.1"
+            if [ "$PAIRS" != "all" ]; then
+                OUTDIR="data/results/1.1_${PAIRS}"
+            fi
             python scripts/01_extract_vector.py --profile "$PROFILE" --model "$MODEL" --pairs "$PAIRS" \
+                --output-dir "$OUTDIR" \
                 || FAILED="$FAILED 1.1"
             ;;
         1.2)
