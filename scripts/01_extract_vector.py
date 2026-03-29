@@ -89,6 +89,13 @@ def parse_args():
         action="store_true",
         help="Resume from cached activations if available (skips informed pair collection)",
     )
+    parser.add_argument(
+        "--pairs",
+        choices=["all", "informed", "naive"],
+        default="all",
+        help="Which pairs to run: all (default), informed (cats 1-4), naive (cat 5). "
+             "Use informed/naive for parallel runs on separate GPUs.",
+    )
     return parser.parse_args()
 
 
@@ -144,6 +151,7 @@ def main():
         token_position=args.token_position,
         n_splits=args.n_splits,
         resume=args.resume,
+        pairs_mode=args.pairs,
     )
     extraction_time = time.time() - start_time
     logger.info("Extraction completed in %.1f seconds (%.1f minutes)",
@@ -158,72 +166,74 @@ def main():
         all_pairs = load_seed_pairs()
         informed_pairs = get_informed_pairs(all_pairs)
 
-        # Validate INFORMED direction
-        logger.info("=" * 60)
-        logger.info("Discriminant validity — INFORMED direction (layer %d)",
-                     summary["best_layer"])
-        logger.info("=" * 60)
-
-        informed_dir = torch.load(
-            args.output_dir / f"self_reification_vector_{model_name}_layer{summary['best_layer']}.pt",
-            weights_only=True,
-        )
-
-        start_time = time.time()
-        informed_validity = run_discriminant_validity(
-            model=model,
-            tokenizer=tokenizer,
-            self_reification_dir=informed_dir,
-            layer=summary["best_layer"],
-            questions=questions,
-            contrastive_pairs=informed_pairs,
-            output_dir=args.output_dir,
-            model_name=model_name,
-            assistant_axis_path=args.assistant_axis_path,
-            max_new_tokens=args.max_new_tokens,
-            token_position=args.token_position,
-        )
-        logger.info("Informed validation completed in %.1f seconds",
-                     time.time() - start_time)
-
-        for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
-            logger.info("  %s: %.4f", key, informed_validity[key])
-        logger.info("  Is discriminant: %s", informed_validity["is_discriminant"])
-
-        # Validate NAIVE direction
-        naive_best_layer = summary.get("naive_best_layer", summary["best_layer"])
-        naive_path = (
-            args.output_dir
-            / f"naive_baseline_vector_{model_name}_layer{naive_best_layer}.pt"
-        )
-        if naive_path.exists():
+        # Validate INFORMED direction (if informed pairs were run)
+        if args.pairs in ("all", "informed") and summary.get("best_layer") is not None:
             logger.info("=" * 60)
-            logger.info("Discriminant validity — NAIVE direction (layer %d)",
-                         naive_best_layer)
+            logger.info("Discriminant validity — INFORMED direction (layer %d)",
+                         summary["best_layer"])
             logger.info("=" * 60)
 
-            naive_dir = torch.load(naive_path, weights_only=True)
+            informed_dir = torch.load(
+                args.output_dir / f"self_reification_vector_{model_name}_layer{summary['best_layer']}.pt",
+                weights_only=True,
+            )
 
             start_time = time.time()
-            naive_validity = run_discriminant_validity(
+            informed_validity = run_discriminant_validity(
                 model=model,
                 tokenizer=tokenizer,
-                self_reification_dir=naive_dir,
-                layer=naive_best_layer,
+                self_reification_dir=informed_dir,
+                layer=summary["best_layer"],
                 questions=questions,
                 contrastive_pairs=informed_pairs,
                 output_dir=args.output_dir,
-                model_name=f"{model_name}_naive",
+                model_name=model_name,
                 assistant_axis_path=args.assistant_axis_path,
                 max_new_tokens=args.max_new_tokens,
                 token_position=args.token_position,
             )
-            logger.info("Naive validation completed in %.1f seconds",
+            logger.info("Informed validation completed in %.1f seconds",
                          time.time() - start_time)
 
             for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
-                logger.info("  %s: %.4f", key, naive_validity[key])
-            logger.info("  Is discriminant: %s", naive_validity["is_discriminant"])
+                logger.info("  %s: %.4f", key, informed_validity[key])
+            logger.info("  Is discriminant: %s", informed_validity["is_discriminant"])
+
+        # Validate NAIVE direction (if naive pairs were run)
+        if args.pairs in ("all", "naive") and summary.get("naive_best_layer") is not None:
+            naive_best_layer = summary["naive_best_layer"]
+            naive_path = (
+                args.output_dir
+                / f"naive_baseline_vector_{model_name}_layer{naive_best_layer}.pt"
+            )
+            if naive_path.exists():
+                logger.info("=" * 60)
+                logger.info("Discriminant validity — NAIVE direction (layer %d)",
+                             naive_best_layer)
+                logger.info("=" * 60)
+
+                naive_dir = torch.load(naive_path, weights_only=True)
+
+                start_time = time.time()
+                naive_validity = run_discriminant_validity(
+                    model=model,
+                    tokenizer=tokenizer,
+                    self_reification_dir=naive_dir,
+                    layer=naive_best_layer,
+                    questions=questions,
+                    contrastive_pairs=informed_pairs,
+                    output_dir=args.output_dir,
+                    model_name=f"{model_name}_naive",
+                    assistant_axis_path=args.assistant_axis_path,
+                    max_new_tokens=args.max_new_tokens,
+                    token_position=args.token_position,
+                )
+                logger.info("Naive validation completed in %.1f seconds",
+                             time.time() - start_time)
+
+                for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
+                    logger.info("  %s: %.4f", key, naive_validity[key])
+                logger.info("  Is discriminant: %s", naive_validity["is_discriminant"])
 
     # Final summary
     logger.info("=" * 60)

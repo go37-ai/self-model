@@ -223,6 +223,7 @@ def run_extraction(
     token_position: str = "last",
     n_splits: int = 100,
     resume: bool = False,
+    pairs_mode: str = "all",
 ) -> dict:
     """Run the full extraction pipeline (Experiment 1.1).
 
@@ -244,6 +245,8 @@ def run_extraction(
         max_new_tokens: Max response length.
         token_position: "last" or "mean".
         n_splits: Number of splits for reliability estimation.
+        pairs_mode: "all" (default), "informed" (categories 1-4 only),
+            or "naive" (category 5 only). Use for parallel runs on separate GPUs.
 
     Returns:
         Summary dict with key results.
@@ -255,6 +258,9 @@ def run_extraction(
     layers = list(range(num_layers))
     model_name = model_config["name"].replace("/", "_")
 
+    run_informed = pairs_mode in ("all", "informed")
+    run_naive = pairs_mode in ("all", "naive")
+
     # Step 1: Load pairs and questions
     all_pairs = load_seed_pairs(config_path)
     informed_pairs = get_informed_pairs(all_pairs)
@@ -262,165 +268,107 @@ def run_extraction(
     questions = get_all_questions(config_path)
 
     logger.info(
-        "Loaded %d informed pairs, %d naive pairs, %d questions",
+        "Loaded %d informed pairs, %d naive pairs, %d questions (mode=%s)",
         len(informed_pairs),
         len(naive_pairs),
         len(questions),
+        pairs_mode,
     )
 
-    # Step 2: Collect activations for informed pairs (categories 1-4)
-    activations_dir = output_dir / "activations"
-    pos_checkpoint = load_activations(activations_dir, f"positive_informed_{model_name}", layers)
-    neg_checkpoint = load_activations(activations_dir, f"negative_informed_{model_name}", layers)
-
-    if resume and len(pos_checkpoint) == len(layers) and len(neg_checkpoint) == len(layers):
-        logger.info("=== Resuming: loaded cached informed activations (%d layers) ===", len(layers))
-        pos_informed = pos_checkpoint
-        neg_informed = neg_checkpoint
-        # Reconstruct pair_boundaries assuming uniform questions per pair
-        n_questions = len(questions)
-        pair_boundaries = [n_questions * (i + 1) for i in range(len(informed_pairs))]
-    else:
-        logger.info("=== Collecting activations for informed pairs ===")
-        pos_informed, neg_informed, pair_boundaries = collect_condition_activations(
-            model, tokenizer, informed_pairs, questions, layers,
-            max_new_tokens=max_new_tokens, token_position=token_position,
-        )
-
-        # Save intermediate activations for checkpointing
-        save_activations(pos_informed, activations_dir, f"positive_informed_{model_name}")
-        save_activations(neg_informed, activations_dir, f"negative_informed_{model_name}")
-
-    # Step 3: Extract combined direction and select best layer
-    logger.info("=== Extracting combined direction ===")
-    combined_directions = extract_all_directions(pos_informed, neg_informed, layers)
-    best_layer, reliabilities = select_best_layer(
-        pos_informed, neg_informed, layers, n_splits=n_splits
-    )
-
-    # Save combined direction at best layer
-    combined_dir = combined_directions[best_layer]
-    torch.save(
-        combined_dir,
-        output_dir / f"self_reification_vector_{model_name}_layer{best_layer}.pt",
-    )
-
-    # Save layer reliability scores
-    with open(output_dir / f"layer_reliability_{model_name}.json", "w") as f:
-        json.dump(
-            {"reliabilities": {str(k): v for k, v in reliabilities.items()},
-             "best_layer": best_layer},
-            f, indent=2,
-        )
-
-    # Step 4: Per-category extraction at the best layer
-    # Reuse already-collected activations by slicing, no re-inference needed.
-    logger.info("=== Extracting per-category directions (from cached activations) ===")
-    pairs_by_cat = get_pairs_by_category(informed_pairs)
-    per_category_vectors = {}
-
-    # Build index: for each category, which pair indices (into informed_pairs) belong to it
-    pair_idx = 0
-    cat_pair_indices: dict[str, list[int]] = {k: [] for k in INFORMED_CATEGORIES}
-    for p in informed_pairs:
-        cat_pair_indices[p["category"]].append(pair_idx)
-        pair_idx += 1
-
-    for cat_key in INFORMED_CATEGORIES:
-        indices = cat_pair_indices[cat_key]
-        if not indices:
-            continue
-
-        pos_cat = slice_activations_by_pair(pos_informed, pair_boundaries, indices)
-        neg_cat = slice_activations_by_pair(neg_informed, pair_boundaries, indices)
-
-        if best_layer in pos_cat and best_layer in neg_cat:
-            cat_dir = extract_direction(pos_cat[best_layer], neg_cat[best_layer])
-            per_category_vectors[cat_key] = cat_dir
-
-    # Save per-category vectors
-    torch.save(
-        per_category_vectors,
-        output_dir / f"per_category_vectors_{model_name}_layer{best_layer}.pt",
-    )
-
-    # Within-category similarity matrix
-    if len(per_category_vectors) > 1:
-        cat_sim = pairwise_cosine_matrix(per_category_vectors)
-        with open(output_dir / f"category_similarity_matrix_{model_name}.json", "w") as f:
-            json.dump(cat_sim, f, indent=2)
-        logger.info("Category similarity matrix: %s", cat_sim["matrix"])
-
-    # Step 4b: Per-category split-half reliability at every layer
-    logger.info("=== Computing per-category reliability by layer ===")
+    best_layer = None
+    reliabilities = {}
+    combined_dir = None
     per_cat_reliability = {}
-    for cat_key in INFORMED_CATEGORIES:
-        indices = cat_pair_indices[cat_key]
-        if not indices:
-            continue
-        pos_cat = slice_activations_by_pair(pos_informed, pair_boundaries, indices)
-        neg_cat = slice_activations_by_pair(neg_informed, pair_boundaries, indices)
-        cat_rel = {}
-        for l in layers:
-            if l in pos_cat and l in neg_cat:
-                cat_rel[l] = split_half_reliability(pos_cat[l], neg_cat[l], n_splits=n_splits)
-        per_cat_reliability[cat_key] = cat_rel
-        logger.info("  %s: best layer %d (%.4f)",
-                     cat_key, max(cat_rel, key=cat_rel.get), max(cat_rel.values()))
 
-    # Also compute naive reliability across layers (needs naive activations at all layers)
-    # — done below after naive collection
+    # Step 2-4: Informed pairs (categories 1-4)
+    if run_informed:
+        activations_dir = output_dir / "activations"
+        pos_checkpoint = load_activations(activations_dir, f"positive_informed_{model_name}", layers)
+        neg_checkpoint = load_activations(activations_dir, f"negative_informed_{model_name}", layers)
 
-    with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
-        json.dump(
-            {cat: {str(l): v for l, v in rels.items()}
-             for cat, rels in per_cat_reliability.items()},
-            f, indent=2,
+        if resume and len(pos_checkpoint) == len(layers) and len(neg_checkpoint) == len(layers):
+            logger.info("=== Resuming: loaded cached informed activations (%d layers) ===", len(layers))
+            pos_informed = pos_checkpoint
+            neg_informed = neg_checkpoint
+            n_questions = len(questions)
+            pair_boundaries = [n_questions * (i + 1) for i in range(len(informed_pairs))]
+        else:
+            logger.info("=== Collecting activations for informed pairs ===")
+            pos_informed, neg_informed, pair_boundaries = collect_condition_activations(
+                model, tokenizer, informed_pairs, questions, layers,
+                max_new_tokens=max_new_tokens, token_position=token_position,
+            )
+            save_activations(pos_informed, activations_dir, f"positive_informed_{model_name}")
+            save_activations(neg_informed, activations_dir, f"negative_informed_{model_name}")
+
+        # Extract combined direction and select best layer
+        logger.info("=== Extracting combined direction ===")
+        combined_directions = extract_all_directions(pos_informed, neg_informed, layers)
+        best_layer, reliabilities = select_best_layer(
+            pos_informed, neg_informed, layers, n_splits=n_splits
         )
 
-    # Step 5: Naive baseline extraction (at ALL layers for reliability comparison)
-    logger.info("=== Extracting naive baseline direction ===")
-    pos_naive, neg_naive, _ = collect_condition_activations(
-        model, tokenizer, naive_pairs, questions, layers,
-        max_new_tokens=max_new_tokens, token_position=token_position,
-    )
+        combined_dir = combined_directions[best_layer]
+        torch.save(
+            combined_dir,
+            output_dir / f"self_reification_vector_{model_name}_layer{best_layer}.pt",
+        )
 
-    # Naive split-half reliability by layer (compute first to find naive best layer)
-    naive_reliability = {}
-    for l in layers:
-        if l in pos_naive and l in neg_naive:
-            naive_reliability[l] = split_half_reliability(
-                pos_naive[l], neg_naive[l], n_splits=n_splits
+        with open(output_dir / f"layer_reliability_{model_name}.json", "w") as f:
+            json.dump(
+                {"reliabilities": {str(k): v for k, v in reliabilities.items()},
+                 "best_layer": best_layer},
+                f, indent=2,
             )
 
-    naive_best_layer = max(naive_reliability, key=naive_reliability.get) if naive_reliability else best_layer
-    logger.info("Naive best layer: %d (reliability=%.4f)",
-                 naive_best_layer, naive_reliability.get(naive_best_layer, 0))
+        # Per-category extraction at the best layer
+        logger.info("=== Extracting per-category directions (from cached activations) ===")
+        pairs_by_cat = get_pairs_by_category(informed_pairs)
+        per_category_vectors = {}
 
-    # Save naive direction at BOTH the informed best layer and the naive best layer
-    naive_direction = None
-    naive_vs_informed_cosine = None
-    for save_layer in sorted(set([best_layer, naive_best_layer])):
-        if save_layer in pos_naive and save_layer in neg_naive:
-            direction = extract_direction(pos_naive[save_layer], neg_naive[save_layer])
-            torch.save(
-                direction,
-                output_dir / f"naive_baseline_vector_{model_name}_layer{save_layer}.pt",
-            )
-            if save_layer == naive_best_layer:
-                naive_direction = direction
+        pair_idx = 0
+        cat_pair_indices: dict[str, list[int]] = {k: [] for k in INFORMED_CATEGORIES}
+        for p in informed_pairs:
+            cat_pair_indices[p["category"]].append(pair_idx)
+            pair_idx += 1
 
-    # Compare naive vs informed at informed best layer
-    if best_layer in pos_naive and best_layer in neg_naive:
-        naive_at_informed_layer = extract_direction(pos_naive[best_layer], neg_naive[best_layer])
-        naive_vs_informed_cosine = cosine_similarity(combined_dir, naive_at_informed_layer)
-        with open(output_dir / f"naive_vs_informed_cosine_{model_name}.json", "w") as f:
-            json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
-        logger.info("Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine)
+        for cat_key in INFORMED_CATEGORIES:
+            indices = cat_pair_indices[cat_key]
+            if not indices:
+                continue
+            pos_cat = slice_activations_by_pair(pos_informed, pair_boundaries, indices)
+            neg_cat = slice_activations_by_pair(neg_informed, pair_boundaries, indices)
+            if best_layer in pos_cat and best_layer in neg_cat:
+                cat_dir = extract_direction(pos_cat[best_layer], neg_cat[best_layer])
+                per_category_vectors[cat_key] = cat_dir
 
-    # Save per-category reliability with naive included
-    if naive_reliability:
-        per_cat_reliability["naive_baseline"] = naive_reliability
+        torch.save(
+            per_category_vectors,
+            output_dir / f"per_category_vectors_{model_name}_layer{best_layer}.pt",
+        )
+
+        if len(per_category_vectors) > 1:
+            cat_sim = pairwise_cosine_matrix(per_category_vectors)
+            with open(output_dir / f"category_similarity_matrix_{model_name}.json", "w") as f:
+                json.dump(cat_sim, f, indent=2)
+            logger.info("Category similarity matrix: %s", cat_sim["matrix"])
+
+        # Per-category split-half reliability at every layer
+        logger.info("=== Computing per-category reliability by layer ===")
+        for cat_key in INFORMED_CATEGORIES:
+            indices = cat_pair_indices[cat_key]
+            if not indices:
+                continue
+            pos_cat = slice_activations_by_pair(pos_informed, pair_boundaries, indices)
+            neg_cat = slice_activations_by_pair(neg_informed, pair_boundaries, indices)
+            cat_rel = {}
+            for l in layers:
+                if l in pos_cat and l in neg_cat:
+                    cat_rel[l] = split_half_reliability(pos_cat[l], neg_cat[l], n_splits=n_splits)
+            per_cat_reliability[cat_key] = cat_rel
+            logger.info("  %s: best layer %d (%.4f)",
+                         cat_key, max(cat_rel, key=cat_rel.get), max(cat_rel.values()))
+
         with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
             json.dump(
                 {cat: {str(l): v for l, v in rels.items()}
@@ -428,21 +376,76 @@ def run_extraction(
                 f, indent=2,
             )
 
+    # Step 5: Naive baseline extraction
+    naive_best_layer = None
+    naive_reliability = {}
+    naive_vs_informed_cosine = None
+
+    if run_naive:
+        logger.info("=== Extracting naive baseline direction ===")
+        pos_naive, neg_naive, _ = collect_condition_activations(
+            model, tokenizer, naive_pairs, questions, layers,
+            max_new_tokens=max_new_tokens, token_position=token_position,
+        )
+
+        # Naive split-half reliability by layer
+        for l in layers:
+            if l in pos_naive and l in neg_naive:
+                naive_reliability[l] = split_half_reliability(
+                    pos_naive[l], neg_naive[l], n_splits=n_splits
+                )
+
+        naive_best_layer = max(naive_reliability, key=naive_reliability.get) if naive_reliability else 0
+        logger.info("Naive best layer: %d (reliability=%.4f)",
+                     naive_best_layer, naive_reliability.get(naive_best_layer, 0))
+
+        # Save naive direction at naive best layer (and informed best layer if available)
+        save_layers = {naive_best_layer}
+        if best_layer is not None:
+            save_layers.add(best_layer)
+
+        for save_layer in sorted(save_layers):
+            if save_layer in pos_naive and save_layer in neg_naive:
+                direction = extract_direction(pos_naive[save_layer], neg_naive[save_layer])
+                torch.save(
+                    direction,
+                    output_dir / f"naive_baseline_vector_{model_name}_layer{save_layer}.pt",
+                )
+
+        # Compare naive vs informed if both were run
+        if combined_dir is not None and best_layer in pos_naive and best_layer in neg_naive:
+            naive_at_informed_layer = extract_direction(pos_naive[best_layer], neg_naive[best_layer])
+            naive_vs_informed_cosine = cosine_similarity(combined_dir, naive_at_informed_layer)
+            with open(output_dir / f"naive_vs_informed_cosine_{model_name}.json", "w") as f:
+                json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
+            logger.info("Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine)
+
+        # Save naive reliability (append to per-category if informed was also run)
+        if naive_reliability:
+            per_cat_reliability["naive_baseline"] = naive_reliability
+            with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
+                json.dump(
+                    {cat: {str(l): v for l, v in rels.items()}
+                     for cat, rels in per_cat_reliability.items()},
+                    f, indent=2,
+                )
+
     # Step 6: Summary
     summary = {
         "model": model_config["name"],
+        "pairs_mode": pairs_mode,
         "best_layer": best_layer,
-        "best_layer_reliability": reliabilities[best_layer],
+        "best_layer_reliability": reliabilities.get(best_layer, None) if best_layer else None,
         "naive_best_layer": naive_best_layer,
-        "naive_best_layer_reliability": naive_reliability.get(naive_best_layer, 0),
-        "num_informed_pairs": len(informed_pairs),
-        "num_naive_pairs": len(naive_pairs),
+        "naive_best_layer_reliability": naive_reliability.get(naive_best_layer, None) if naive_best_layer else None,
+        "num_informed_pairs": len(informed_pairs) if run_informed else 0,
+        "num_naive_pairs": len(naive_pairs) if run_naive else 0,
         "num_questions": len(questions),
         "naive_vs_informed_cosine": naive_vs_informed_cosine,
         "token_position": token_position,
     }
 
-    with open(output_dir / "validation_metrics.json", "w") as f:
+    with open(output_dir / f"validation_metrics_{pairs_mode}.json", "w") as f:
         json.dump(summary, f, indent=2)
 
     logger.info("=== Extraction complete ===")

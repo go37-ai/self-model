@@ -19,6 +19,7 @@ set -uo pipefail
 
 MODEL="${MODEL:-qwen2}"
 EXPERIMENTS="${EXPERIMENTS:-1.1}"
+PAIRS="${PAIRS:-all}"
 PROFILE="cloud"
 
 # Parse arguments
@@ -26,13 +27,14 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --model) MODEL="$2"; shift 2 ;;
         --experiments) EXPERIMENTS="$2"; shift 2 ;;
+        --pairs) PAIRS="$2"; shift 2 ;;
         *) echo "Unknown arg: $1"; exit 1 ;;
     esac
 done
 
 echo "============================================================"
 echo "Cloud experiment runner"
-echo "Model: $MODEL | Profile: $PROFILE | Experiments: $EXPERIMENTS"
+echo "Model: $MODEL | Profile: $PROFILE | Experiments: $EXPERIMENTS | Pairs: $PAIRS"
 echo "Started: $(date -Iseconds)"
 echo "============================================================"
 
@@ -62,7 +64,7 @@ for EXP in $EXPERIMENTS; do
 
     case $EXP in
         1.1)
-            python scripts/01_extract_vector.py --profile "$PROFILE" --model "$MODEL" \
+            python scripts/01_extract_vector.py --profile "$PROFILE" --model "$MODEL" --pairs "$PAIRS" \
                 || FAILED="$FAILED 1.1"
             ;;
         1.2)
