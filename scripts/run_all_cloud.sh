@@ -120,16 +120,35 @@ else
     fi
 fi
 
-# Stop the pod via runpodctl (only if push succeeded or no results to push)
+# Stop THIS pod via runpodctl (only if push succeeded or no results to push)
+# Match pod by hostname to avoid stopping other running pods
 echo "Stopping pod..."
 if command -v runpodctl &>/dev/null; then
-    # Find pod ID from runpodctl (RUNPOD_POD_ID is not auto-set)
-    POD_ID=$(runpodctl get pod 2>/dev/null | awk 'NR==2 {print $1}' || true)
+    HOSTNAME=$(hostname)
+    # runpodctl get pod output: ID, NAME, GPU, IMAGE, STATUS
+    # Pod IDs contain the hostname prefix in container environments
+    POD_ID=$(runpodctl get pod 2>/dev/null | awk -v host="$HOSTNAME" 'NR>1 {print $1}' | while read id; do
+        if echo "$HOSTNAME" | grep -q "${id:0:12}" 2>/dev/null || echo "$id" | grep -q "${HOSTNAME:0:12}" 2>/dev/null; then
+            echo "$id"
+            break
+        fi
+    done)
+    # Fallback: if only one pod is running, stop it
+    if [ -z "$POD_ID" ]; then
+        NUM_PODS=$(runpodctl get pod 2>/dev/null | awk 'NR>1' | wc -l)
+        if [ "$NUM_PODS" = "1" ]; then
+            POD_ID=$(runpodctl get pod 2>/dev/null | awk 'NR==2 {print $1}')
+            echo "Only one pod running, assuming it's this one."
+        else
+            echo "Multiple pods running and cannot identify this one. Stop manually."
+            echo "Hostname: $HOSTNAME"
+            runpodctl get pod 2>/dev/null
+            exit 0
+        fi
+    fi
     if [ -n "$POD_ID" ]; then
         echo "Stopping pod $POD_ID..."
         runpodctl stop pod "$POD_ID"
-    else
-        echo "Could not determine pod ID. Stop the pod manually."
     fi
 else
     echo "runpodctl not available. Stop the pod manually."
