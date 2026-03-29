@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # run_all_cloud.sh — Run experiments on a cloud GPU pod, push results, stop pod.
 #
-# Usage:
-#   From your dev box, launch via SSH with API key forwarded:
-#     ssh pod "cd /workspace/self-model && RUNPOD_API_KEY=$RUNPOD_API_KEY bash scripts/run_all_cloud.sh"
+# Usage (from your dev box):
+#   ssh -A root@HOST -p PORT -i ~/.ssh/id_ed25519 \
+#     "git clone git@github.com:go37-ai/self-model.git /workspace/self-model && \
+#      cd /workspace/self-model && \
+#      RUNPOD_API_KEY=\$RUNPOD_API_KEY nohup bash scripts/run_all_cloud.sh \
+#        --model qwen2 --experiments '1.1' > /workspace/run.log 2>&1 &"
 #
-#   Or on the pod directly (if RUNPOD_API_KEY is set):
-#     RUNPOD_API_KEY=xxx bash scripts/run_all_cloud.sh --model qwen2 --experiments "1.1"
+# Requirements:
+#   -A flag forwards your SSH agent so git push uses your GitHub SSH key
+#   RUNPOD_API_KEY env var enables auto-shutdown via runpodctl
+#   Clone via git@ (SSH) not https:// so push works with forwarded agent
 #
-# The script will run experiments, attempt to push results to git, then
-# stop the pod via runpodctl. If git push fails, the pod still shuts down.
+# The script runs experiments, pushes results to git, then stops the pod.
 
 set -uo pipefail
 
@@ -87,6 +91,10 @@ echo "============================================================"
 echo "Pushing results to git..."
 git config user.email "cloud-runner@self-model"
 git config user.name "Cloud Runner"
+
+# Ensure remote uses SSH (in case cloned via HTTPS)
+git remote set-url origin git@github.com:go37-ai/self-model.git 2>/dev/null || true
+
 git add data/results/ -f
 git reset -- 'data/results/*/activations/' 2>/dev/null || true
 git add -u
