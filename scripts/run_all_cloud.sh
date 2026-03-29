@@ -94,8 +94,8 @@ echo "Pushing results to git..."
 git config user.email "cloud-runner@self-model"
 git config user.name "Cloud Runner"
 
-# Ensure remote uses SSH (in case cloned via HTTPS)
-git remote set-url origin git@github.com:go37-ai/self-model.git 2>/dev/null || true
+# Note: push auth comes from the clone URL. Clone with token:
+#   git clone https://TOKEN@github.com/go37-ai/self-model.git
 
 git add data/results/ -f
 git reset -- 'data/results/*/activations/' 2>/dev/null || true
