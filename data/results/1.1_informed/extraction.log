@@ -1,0 +1,39 @@
+2026-03-29 18:18:19,043 [__main__] INFO: ============================================================
+2026-03-29 18:18:19,043 [__main__] INFO: Experiment 1.1 — Self-Reification Direction Extraction
+2026-03-29 18:18:19,043 [__main__] INFO: ============================================================
+2026-03-29 18:18:19,043 [__main__] INFO: Profile: cloud
+2026-03-29 18:18:19,043 [__main__] INFO: Model: qwen3
+2026-03-29 18:18:19,043 [__main__] INFO: Output: data/results/1.1_informed
+2026-03-29 18:18:19,043 [__main__] INFO: Loading model...
+2026-03-29 18:18:19,045 [utils.model_loader] INFO: Loading model=Qwen/Qwen3-32B profile=cloud dtype=bfloat16 quantize=False
+2026-03-29 18:18:19,391 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-29 18:18:19,421 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137/config.json "HTTP/1.1 200 OK"
+2026-03-29 18:18:19,453 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137/config.json "HTTP/1.1 200 OK"
+2026-03-29 18:18:19,772 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/main/model.safetensors "HTTP/1.1 404 Not Found"
+2026-03-29 18:18:19,998 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/main/model.safetensors.index.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-29 18:18:19,999 [huggingface_hub.utils._http] WARNING: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-03-29 18:18:20,029 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137/model.safetensors.index.json "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,060 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3-32B/9216db5781bf21249d130ec9da846c4624c16137/model.safetensors.index.json "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,295 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/revision/main "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,528 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00006-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,531 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00001-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,585 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00004-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,592 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00003-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,597 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00007-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,599 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00002-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,601 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00005-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,609 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00008-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:20,740 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,763 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,807 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,816 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,821 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,828 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,830 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:20,839 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen3-32B/xet-read-token/9216db5781bf21249d130ec9da846c4624c16137 "HTTP/1.1 200 OK"
+2026-03-29 18:18:28,636 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00010-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:28,696 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00009-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:28,857 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00012-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:28,871 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00014-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:28,873 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00013-of-00017.safetensors "HTTP/1.1 302 Found"
+2026-03-29 18:18:28,929 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/model-00011-of-00017.safetensors "HTTP/1.1 302 Found"
