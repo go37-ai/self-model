@@ -2,17 +2,16 @@
 # run_all_cloud.sh — Run experiments on a cloud GPU pod, push results, stop pod.
 #
 # Usage:
-#   bash scripts/run_all_cloud.sh [--model MODEL] [--experiments EXPERIMENTS]
+#   From your dev box, launch via SSH with API key forwarded:
+#     ssh pod "cd /workspace/self-model && RUNPOD_API_KEY=$RUNPOD_API_KEY bash scripts/run_all_cloud.sh"
 #
-# Examples:
-#   bash scripts/run_all_cloud.sh                          # Run all experiments, qwen2
-#   bash scripts/run_all_cloud.sh --model qwen2 --experiments "1.1"
-#   bash scripts/run_all_cloud.sh --model qwen3 --experiments "1.1 1.2 1.3"
+#   Or on the pod directly (if RUNPOD_API_KEY is set):
+#     RUNPOD_API_KEY=xxx bash scripts/run_all_cloud.sh --model qwen2 --experiments "1.1"
 #
-# This script is designed for disposable pods: clone repo, install deps,
-# run experiments, push results to git, stop the pod.
+# The script will run experiments, attempt to push results to git, then
+# stop the pod via runpodctl. If git push fails, the pod still shuts down.
 
-set -euo pipefail
+set -uo pipefail
 
 MODEL="${MODEL:-qwen2}"
 EXPERIMENTS="${EXPERIMENTS:-1.1}"
@@ -32,6 +31,12 @@ echo "Cloud experiment runner"
 echo "Model: $MODEL | Profile: $PROFILE | Experiments: $EXPERIMENTS"
 echo "Started: $(date -Iseconds)"
 echo "============================================================"
+
+# Configure runpodctl early so shutdown works even if experiments fail
+if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_API_KEY:-}" ]; then
+    runpodctl config --apiKey "$RUNPOD_API_KEY" 2>/dev/null || true
+    echo "runpodctl configured."
+fi
 
 # Ensure we're in the repo root
 cd "$(dirname "$0")/.."
@@ -78,43 +83,32 @@ if [ -n "$FAILED" ]; then
 fi
 echo "============================================================"
 
-# Push results to git (small files only — vectors, JSON, logs)
+# Push results to git (small files only — skip activations cache)
 echo "Pushing results to git..."
 git config user.email "cloud-runner@self-model"
 git config user.name "Cloud Runner"
 git add data/results/ -f
-git add -u  # pick up any modified tracked files
+git reset -- 'data/results/*/activations/' 2>/dev/null || true
+git add -u
 
 if git diff --cached --quiet; then
     echo "No new results to push."
 else
     git commit -m "Cloud run results: experiments ${EXPERIMENTS} on ${MODEL} ($(date -I))"
-    git push origin main
-    echo "Results pushed."
+    git push origin main && echo "Results pushed." || echo "WARNING: git push failed. Results are on disk — download via scp."
 fi
 
-# Stop the pod via RunPod API
-# Requires RUNPOD_API_KEY env var (set in pod template or passed at launch)
-# and RUNPOD_POD_ID (auto-set by RunPod in most pod templates)
+# Stop the pod via runpodctl
 echo "Stopping pod..."
 if command -v runpodctl &>/dev/null; then
-    if [ -n "${RUNPOD_API_KEY:-}" ]; then
-        runpodctl config --apiKey "$RUNPOD_API_KEY" 2>/dev/null
-    fi
-    if [ -n "${RUNPOD_POD_ID:-}" ]; then
-        echo "Stopping pod $RUNPOD_POD_ID via runpodctl..."
-        runpodctl stop pod "$RUNPOD_POD_ID"
+    # Find pod ID from runpodctl (RUNPOD_POD_ID is not auto-set)
+    POD_ID=$(runpodctl get pod 2>/dev/null | awk 'NR==2 {print $1}' || true)
+    if [ -n "$POD_ID" ]; then
+        echo "Stopping pod $POD_ID..."
+        runpodctl stop pod "$POD_ID"
     else
-        echo "RUNPOD_POD_ID not set. Attempting to find pod ID..."
-        # Try to get pod ID from hostname or API
-        POD_ID=$(runpodctl get pod 2>/dev/null | grep -o '[a-z0-9]\{24\}' | head -1 || true)
-        if [ -n "$POD_ID" ]; then
-            echo "Found pod $POD_ID, stopping..."
-            runpodctl stop pod "$POD_ID"
-        else
-            echo "Could not determine pod ID. Stop the pod manually."
-        fi
+        echo "Could not determine pod ID. Stop the pod manually."
     fi
 else
-    echo "runpodctl not found. Stop the pod manually."
+    echo "runpodctl not available. Stop the pod manually."
 fi
