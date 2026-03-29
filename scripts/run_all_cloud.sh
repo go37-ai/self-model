@@ -105,10 +105,17 @@ if git diff --cached --quiet; then
     echo "No new results to push."
 else
     git commit -m "Cloud run results: experiments ${EXPERIMENTS} on ${MODEL} ($(date -I))"
-    git push origin main && echo "Results pushed." || echo "WARNING: git push failed. Results are on disk — download via scp."
+    if git push origin main; then
+        echo "Results pushed successfully."
+        PUSH_OK=true
+    else
+        echo "ERROR: git push failed. Results are on disk. NOT shutting down pod."
+        echo "Download results manually, then stop the pod from the dashboard."
+        exit 1
+    fi
 fi
 
-# Stop the pod via runpodctl
+# Stop the pod via runpodctl (only if push succeeded or no results to push)
 echo "Stopping pod..."
 if command -v runpodctl &>/dev/null; then
     # Find pod ID from runpodctl (RUNPOD_POD_ID is not auto-set)
