@@ -1,0 +1,13 @@
+{
+  "model": "Qwen/Qwen3-32B",
+  "pairs_mode": "naive",
+  "best_layer": null,
+  "best_layer_reliability": null,
+  "naive_best_layer": 63,
+  "naive_best_layer_reliability": 0.4889004771411419,
+  "num_informed_pairs": 0,
+  "num_naive_pairs": 15,
+  "num_questions": 30,
+  "naive_vs_informed_cosine": null,
+  "token_position": "last"
+}
