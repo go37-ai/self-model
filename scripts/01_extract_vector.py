@@ -151,29 +151,30 @@ def main():
 
     # Run discriminant validity (unless skipped)
     if not args.skip_validation:
-        logger.info("=" * 60)
-        logger.info("Running discriminant validity checks...")
-        logger.info("=" * 60)
-
         import torch
 
-        best_layer = summary["best_layer"]
         model_name = model_config["name"].replace("/", "_")
-        vector_path = (
-            args.output_dir
-            / f"self_reification_vector_{model_name}_layer{best_layer}.pt"
-        )
-        self_reification_dir = torch.load(vector_path, weights_only=True)
-
         questions = get_all_questions()
-        informed_pairs = get_informed_pairs(load_seed_pairs())
+        all_pairs = load_seed_pairs()
+        informed_pairs = get_informed_pairs(all_pairs)
+
+        # Validate INFORMED direction
+        logger.info("=" * 60)
+        logger.info("Discriminant validity — INFORMED direction (layer %d)",
+                     summary["best_layer"])
+        logger.info("=" * 60)
+
+        informed_dir = torch.load(
+            args.output_dir / f"self_reification_vector_{model_name}_layer{summary['best_layer']}.pt",
+            weights_only=True,
+        )
 
         start_time = time.time()
-        validity = run_discriminant_validity(
+        informed_validity = run_discriminant_validity(
             model=model,
             tokenizer=tokenizer,
-            self_reification_dir=self_reification_dir,
-            layer=best_layer,
+            self_reification_dir=informed_dir,
+            layer=summary["best_layer"],
             questions=questions,
             contrastive_pairs=informed_pairs,
             output_dir=args.output_dir,
@@ -182,31 +183,58 @@ def main():
             max_new_tokens=args.max_new_tokens,
             token_position=args.token_position,
         )
-        logger.info(
-            "Validation completed in %.1f seconds", time.time() - start_time
-        )
+        logger.info("Informed validation completed in %.1f seconds",
+                     time.time() - start_time)
 
-        # Print summary
-        logger.info("=" * 60)
-        logger.info("DISCRIMINANT VALIDITY RESULTS")
-        logger.info("=" * 60)
-        logger.info("  Confidence cosine:     %.4f", validity["confidence_cosine"])
-        logger.info("  Formality cosine:      %.4f", validity["formality_cosine"])
-        logger.info("  Pronoun correlation:   %.4f", validity["pronoun_density_correlation"])
-        if validity["assistant_axis_cosine"] is not None:
-            logger.info("  Assistant Axis cosine: %.4f", validity["assistant_axis_cosine"])
-        logger.info("  Is discriminant:       %s", validity["is_discriminant"])
-        if validity["concerns"]:
-            for concern in validity["concerns"]:
-                logger.warning("  CONCERN: %s", concern)
+        for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
+            logger.info("  %s: %.4f", key, informed_validity[key])
+        logger.info("  Is discriminant: %s", informed_validity["is_discriminant"])
+
+        # Validate NAIVE direction
+        naive_best_layer = summary.get("naive_best_layer", summary["best_layer"])
+        naive_path = (
+            args.output_dir
+            / f"naive_baseline_vector_{model_name}_layer{naive_best_layer}.pt"
+        )
+        if naive_path.exists():
+            logger.info("=" * 60)
+            logger.info("Discriminant validity — NAIVE direction (layer %d)",
+                         naive_best_layer)
+            logger.info("=" * 60)
+
+            naive_dir = torch.load(naive_path, weights_only=True)
+
+            start_time = time.time()
+            naive_validity = run_discriminant_validity(
+                model=model,
+                tokenizer=tokenizer,
+                self_reification_dir=naive_dir,
+                layer=naive_best_layer,
+                questions=questions,
+                contrastive_pairs=informed_pairs,
+                output_dir=args.output_dir,
+                model_name=f"{model_name}_naive",
+                assistant_axis_path=args.assistant_axis_path,
+                max_new_tokens=args.max_new_tokens,
+                token_position=args.token_position,
+            )
+            logger.info("Naive validation completed in %.1f seconds",
+                         time.time() - start_time)
+
+            for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
+                logger.info("  %s: %.4f", key, naive_validity[key])
+            logger.info("  Is discriminant: %s", naive_validity["is_discriminant"])
 
     # Final summary
     logger.info("=" * 60)
     logger.info("EXTRACTION SUMMARY")
     logger.info("=" * 60)
     logger.info("  Model:              %s", summary["model"])
-    logger.info("  Best layer:         %d", summary["best_layer"])
-    logger.info("  Layer reliability:  %.4f", summary["best_layer_reliability"])
+    logger.info("  Informed best layer: %d (r=%.4f)",
+                 summary["best_layer"], summary["best_layer_reliability"])
+    logger.info("  Naive best layer:   %d (r=%.4f)",
+                 summary.get("naive_best_layer", -1),
+                 summary.get("naive_best_layer_reliability", 0))
     logger.info("  Naive vs informed:  %s", summary.get("naive_vs_informed_cosine"))
     logger.info("  Results saved to:   %s", args.output_dir)
     logger.info("=" * 60)

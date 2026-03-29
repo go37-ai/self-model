@@ -93,17 +93,28 @@ else
     echo "Results pushed."
 fi
 
-# Stop the pod — try runpodctl first, then kill the container process
+# Stop the pod via RunPod API
+# Requires RUNPOD_API_KEY env var (set in pod template or passed at launch)
+# and RUNPOD_POD_ID (auto-set by RunPod in most pod templates)
 echo "Stopping pod..."
-if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_POD_ID:-}" ]; then
-    runpodctl stop pod "$RUNPOD_POD_ID"
-elif [ -f /run/secrets/runpod-api-key ]; then
-    # RunPod containers may have the API key mounted
-    APIKEY=$(cat /run/secrets/runpod-api-key)
-    runpodctl config --apiKey "$APIKEY" 2>/dev/null
-    runpodctl stop pod "$RUNPOD_POD_ID" 2>/dev/null
+if command -v runpodctl &>/dev/null; then
+    if [ -n "${RUNPOD_API_KEY:-}" ]; then
+        runpodctl config --apiKey "$RUNPOD_API_KEY" 2>/dev/null
+    fi
+    if [ -n "${RUNPOD_POD_ID:-}" ]; then
+        echo "Stopping pod $RUNPOD_POD_ID via runpodctl..."
+        runpodctl stop pod "$RUNPOD_POD_ID"
+    else
+        echo "RUNPOD_POD_ID not set. Attempting to find pod ID..."
+        # Try to get pod ID from hostname or API
+        POD_ID=$(runpodctl get pod 2>/dev/null | grep -o '[a-z0-9]\{24\}' | head -1 || true)
+        if [ -n "$POD_ID" ]; then
+            echo "Found pod $POD_ID, stopping..."
+            runpodctl stop pod "$POD_ID"
+        else
+            echo "Could not determine pod ID. Stop the pod manually."
+        fi
+    fi
+else
+    echo "runpodctl not found. Stop the pod manually."
 fi
-# Last resort: kill PID 1 to stop the container
-echo "Sending SIGTERM to init process..."
-kill 1 2>/dev/null || true
-echo "Done. If the pod is still running, stop it from the dashboard."

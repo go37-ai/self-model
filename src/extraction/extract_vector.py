@@ -385,47 +385,56 @@ def run_extraction(
         max_new_tokens=max_new_tokens, token_position=token_position,
     )
 
-    naive_direction = None
-    naive_vs_informed_cosine = None
-    if best_layer in pos_naive and best_layer in neg_naive:
-        naive_direction = extract_direction(pos_naive[best_layer], neg_naive[best_layer])
-        torch.save(
-            naive_direction,
-            output_dir / f"naive_baseline_vector_{model_name}_layer{best_layer}.pt",
-        )
-
-        naive_vs_informed_cosine = cosine_similarity(combined_dir, naive_direction)
-        with open(output_dir / f"naive_vs_informed_cosine_{model_name}.json", "w") as f:
-            json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
-        logger.info(
-            "Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine
-        )
-
-    # Naive split-half reliability by layer
+    # Naive split-half reliability by layer (compute first to find naive best layer)
     naive_reliability = {}
     for l in layers:
         if l in pos_naive and l in neg_naive:
             naive_reliability[l] = split_half_reliability(
                 pos_naive[l], neg_naive[l], n_splits=n_splits
             )
+
+    naive_best_layer = max(naive_reliability, key=naive_reliability.get) if naive_reliability else best_layer
+    logger.info("Naive best layer: %d (reliability=%.4f)",
+                 naive_best_layer, naive_reliability.get(naive_best_layer, 0))
+
+    # Save naive direction at BOTH the informed best layer and the naive best layer
+    naive_direction = None
+    naive_vs_informed_cosine = None
+    for save_layer in sorted(set([best_layer, naive_best_layer])):
+        if save_layer in pos_naive and save_layer in neg_naive:
+            direction = extract_direction(pos_naive[save_layer], neg_naive[save_layer])
+            torch.save(
+                direction,
+                output_dir / f"naive_baseline_vector_{model_name}_layer{save_layer}.pt",
+            )
+            if save_layer == naive_best_layer:
+                naive_direction = direction
+
+    # Compare naive vs informed at informed best layer
+    if best_layer in pos_naive and best_layer in neg_naive:
+        naive_at_informed_layer = extract_direction(pos_naive[best_layer], neg_naive[best_layer])
+        naive_vs_informed_cosine = cosine_similarity(combined_dir, naive_at_informed_layer)
+        with open(output_dir / f"naive_vs_informed_cosine_{model_name}.json", "w") as f:
+            json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
+        logger.info("Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine)
+
+    # Save per-category reliability with naive included
     if naive_reliability:
         per_cat_reliability["naive_baseline"] = naive_reliability
-        # Re-save with naive included
         with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
             json.dump(
                 {cat: {str(l): v for l, v in rels.items()}
                  for cat, rels in per_cat_reliability.items()},
                 f, indent=2,
             )
-        logger.info("  naive_baseline: best layer %d (%.4f)",
-                     max(naive_reliability, key=naive_reliability.get),
-                     max(naive_reliability.values()))
 
     # Step 6: Summary
     summary = {
         "model": model_config["name"],
         "best_layer": best_layer,
         "best_layer_reliability": reliabilities[best_layer],
+        "naive_best_layer": naive_best_layer,
+        "naive_best_layer_reliability": naive_reliability.get(naive_best_layer, 0),
         "num_informed_pairs": len(informed_pairs),
         "num_naive_pairs": len(naive_pairs),
         "num_questions": len(questions),
