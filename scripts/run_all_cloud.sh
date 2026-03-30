@@ -104,9 +104,8 @@ UPLOAD_OK=false
 
 if command -v aws &>/dev/null && [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
     echo "Uploading results to s3://${S3_BUCKET}/${S3_PREFIX}/..."
-    # Sync all result dirs, exclude activation cache (too large, only needed for resume)
+    # Sync all result dirs including activations (small enough with layer_stride)
     aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
-        --exclude "*/activations/*" \
         && UPLOAD_OK=true \
         || echo "WARNING: S3 upload failed."
 else
@@ -114,7 +113,6 @@ else
     pip install awscli 2>/dev/null
     if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
         aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
-            --exclude "*/activations/*" \
             && UPLOAD_OK=true \
             || echo "WARNING: S3 upload failed."
     else

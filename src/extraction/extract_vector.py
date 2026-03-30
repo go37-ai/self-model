@@ -392,10 +392,15 @@ def run_extraction(
 
     if run_naive:
         logger.info("=== Extracting naive baseline direction ===")
+        activations_dir = output_dir / "activations"
         pos_naive, neg_naive, _ = collect_condition_activations(
             model, tokenizer, naive_pairs, questions, layers,
             max_new_tokens=max_new_tokens, token_position=token_position,
         )
+
+        # Save naive activations for later analysis (corrected reliability, etc.)
+        save_activations(pos_naive, activations_dir, f"positive_naive_{model_name}")
+        save_activations(neg_naive, activations_dir, f"negative_naive_{model_name}")
 
         # Naive split-half reliability by layer
         for l in layers:
