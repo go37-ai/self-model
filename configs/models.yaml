@@ -34,7 +34,12 @@ models:
     hidden_size: 5120
     target_layer: 32           # from assistant-axis config
     assistant_axis_config: qwen-3-32b/capping_config.pt
-  # Cloud secondary — matches assistant-axis paper
+  # Cloud 72B — same family as qwen2 for clean scaling comparison
+  qwen72:
+    name: Qwen/Qwen2.5-72B-Instruct
+    num_layers: 80
+    hidden_size: 8192
+  # Cloud secondary — matches assistant-axis paper (requires HF_TOKEN)
   llama:
     name: meta-llama/Llama-3.3-70B-Instruct
     num_layers: 80
