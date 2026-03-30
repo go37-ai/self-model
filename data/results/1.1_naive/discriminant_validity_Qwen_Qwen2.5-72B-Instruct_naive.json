@@ -1,0 +1,16 @@
+{
+  "confidence_cosine": -0.45895034074783325,
+  "formality_cosine": -0.8356268405914307,
+  "pronoun_density_correlation": -0.09885682266273688,
+  "assistant_axis_cosine": null,
+  "concerns": [
+    "High formality overlap: -0.8356"
+  ],
+  "is_discriminant": false,
+  "corrected": {
+    "formality_cosine": -8.526056944901939e-07,
+    "confidence_cosine": 0.00016648993187118322,
+    "cosine_with_original": 0.5492984056472778,
+    "variance_retained": 0.3017287384466414
+  }
+}
