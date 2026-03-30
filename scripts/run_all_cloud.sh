@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-RUN_DATE=$(date -u -I)  # UTC date at start of run
+RUN_DATE=$(date -u +%Y-%m-%d_%H%M)  # UTC date+time at start of run
 RUN_START=$(date -u -Iseconds)
 
 echo "============================================================"
