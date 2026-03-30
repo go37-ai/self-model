@@ -434,6 +434,55 @@ def run_extraction(
                 json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
             logger.info("Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine)
 
+        # Per-register analysis (if register tags are present)
+        register_groups: dict[str, list[int]] = {}
+        for i, pair in enumerate(naive_pairs):
+            reg = pair.get("register", "untagged")
+            register_groups.setdefault(reg, []).append(i)
+
+        if len(register_groups) > 1:
+            logger.info("=== Per-register analysis (%d registers) ===", len(register_groups))
+
+            # Reconstruct pair boundaries for naive pairs
+            n_questions = len(questions)
+            naive_boundaries = [n_questions * (i + 1) for i in range(len(naive_pairs))]
+
+            per_register_vectors = {}
+            per_register_reliability = {}
+
+            for reg_name, indices in register_groups.items():
+                pos_reg = slice_activations_by_pair(pos_naive, naive_boundaries, indices)
+                neg_reg = slice_activations_by_pair(neg_naive, naive_boundaries, indices)
+
+                # Reliability at naive best layer
+                if naive_best_layer in pos_reg and naive_best_layer in neg_reg:
+                    reg_rel = split_half_reliability(
+                        pos_reg[naive_best_layer], neg_reg[naive_best_layer], n_splits=n_splits
+                    )
+                    per_register_reliability[reg_name] = reg_rel
+                    logger.info("  %s: reliability=%.4f (layer %d)", reg_name, reg_rel, naive_best_layer)
+
+                    # Extract direction at naive best layer
+                    reg_dir = extract_direction(pos_reg[naive_best_layer], neg_reg[naive_best_layer])
+                    per_register_vectors[reg_name] = reg_dir
+
+            # Cross-register cosine similarity
+            if len(per_register_vectors) > 1:
+                reg_sim = pairwise_cosine_matrix(per_register_vectors)
+                with open(output_dir / f"register_similarity_matrix_{model_name}.json", "w") as f:
+                    json.dump(reg_sim, f, indent=2)
+                logger.info("Register similarity matrix: %s", reg_sim["matrix"])
+
+            # Save per-register vectors and reliability
+            if per_register_vectors:
+                torch.save(
+                    per_register_vectors,
+                    output_dir / f"per_register_vectors_{model_name}_layer{naive_best_layer}.pt",
+                )
+            if per_register_reliability:
+                with open(output_dir / f"per_register_reliability_{model_name}.json", "w") as f:
+                    json.dump(per_register_reliability, f, indent=2)
+
         # Save naive reliability (append to per-category if informed was also run)
         if naive_reliability:
             per_cat_reliability["naive_baseline"] = naive_reliability

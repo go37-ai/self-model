@@ -58,12 +58,15 @@ def load_seed_pairs(
         category = config[cat_key]
         label = category["label"]
         for seed in category["seed_pairs"]:
-            pairs.append({
+            pair = {
                 "positive": seed["positive"].strip(),
                 "negative": seed["negative"].strip(),
                 "category": cat_key,
                 "label": label,
-            })
+            }
+            if "register" in seed:
+                pair["register"] = seed["register"]
+            pairs.append(pair)
 
     logger.info("Loaded %d seed pairs from %d categories", len(pairs), len(categories))
     return pairs
