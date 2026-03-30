@@ -1,10 +1,10 @@
 {
-  "model": "Qwen/Qwen3-32B",
+  "model": "Qwen/Qwen2.5-72B-Instruct",
   "pairs_mode": "naive",
   "best_layer": null,
   "best_layer_reliability": null,
-  "naive_best_layer": 63,
-  "naive_best_layer_reliability": 0.4889004771411419,
+  "naive_best_layer": 24,
+  "naive_best_layer_reliability": 0.7399300068616868,
   "num_informed_pairs": 0,
   "num_naive_pairs": 15,
   "num_questions": 30,
