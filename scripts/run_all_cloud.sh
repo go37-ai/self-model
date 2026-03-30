@@ -32,10 +32,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+RUN_DATE=$(date -u -I)  # UTC date at start of run
+RUN_START=$(date -u -Iseconds)
+
 echo "============================================================"
 echo "Cloud experiment runner"
 echo "Model: $MODEL | Profile: $PROFILE | Experiments: $EXPERIMENTS | Pairs: $PAIRS"
-echo "Started: $(date -Iseconds)"
+echo "Started: $RUN_START"
 echo "============================================================"
 
 # Source RunPod environment (provides RUNPOD_POD_ID, RUNPOD_API_KEY, etc.)
@@ -97,27 +100,41 @@ if [ -n "$FAILED" ]; then
 fi
 echo "============================================================"
 
-# Upload results to S3 (all files including .pt vectors)
+# Upload results to S3, organized by model/date
 S3_BUCKET="${S3_RESULTS_BUCKET:-go37-ai}"
-S3_PREFIX="self-model-results"
+S3_BASE="self-model-results"
 UPLOAD_OK=false
 
-if command -v aws &>/dev/null && [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
-    echo "Uploading results to s3://${S3_BUCKET}/${S3_PREFIX}/..."
-    # Sync all result dirs including activations (small enough with layer_stride)
-    aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
-        && UPLOAD_OK=true \
-        || echo "WARNING: S3 upload failed."
-else
-    echo "AWS CLI not configured. Installing..."
+# Derive model name for S3 path
+source /etc/rp_environment 2>/dev/null
+MODEL_NAME=$(python3 -c "
+import yaml
+with open('configs/models.yaml') as f:
+    cfg = yaml.safe_load(f)
+print(cfg['models']['${MODEL}']['name'].replace('/', '_'))
+" 2>/dev/null || echo "$MODEL")
+S3_PREFIX="${S3_BASE}/${MODEL_NAME}/${RUN_DATE}_${PAIRS}"
+
+# Install AWS CLI if needed
+if ! command -v aws &>/dev/null; then
     pip install awscli 2>/dev/null
-    if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
-        aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
-            && UPLOAD_OK=true \
-            || echo "WARNING: S3 upload failed."
-    else
-        echo "WARNING: AWS_ACCESS_KEY_ID not set. Cannot upload to S3."
-    fi
+fi
+
+if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+    echo "Uploading results to s3://${S3_BUCKET}/${S3_PREFIX}/..."
+
+    # Upload result files
+    for DIR in data/results/1.1 data/results/1.1_informed data/results/1.1_naive; do
+        [ -d "$DIR" ] && aws s3 sync "$DIR" "s3://${S3_BUCKET}/${S3_PREFIX}/$(basename $DIR)/"
+    done
+
+    # Upload contrastive pairs config for reproducibility
+    aws s3 cp configs/contrastive_pairs.yaml "s3://${S3_BUCKET}/${S3_PREFIX}/contrastive_pairs.yaml"
+
+    UPLOAD_OK=true
+    echo "Upload complete."
+else
+    echo "WARNING: AWS_ACCESS_KEY_ID not set. Cannot upload to S3."
 fi
 
 # Also push small files (JSON, logs) to git as backup
