@@ -128,8 +128,12 @@ if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
         [ -d "$DIR" ] && aws s3 sync "$DIR" "s3://${S3_BUCKET}/${S3_PREFIX}/$(basename $DIR)/"
     done
 
-    # Upload contrastive pairs config for reproducibility
+    # Upload configs for reproducibility
     aws s3 cp configs/contrastive_pairs.yaml "s3://${S3_BUCKET}/${S3_PREFIX}/contrastive_pairs.yaml"
+    aws s3 cp configs/models.yaml "s3://${S3_BUCKET}/${S3_PREFIX}/models.yaml"
+
+    # Upload the run log
+    [ -f /workspace/run.log ] && aws s3 cp /workspace/run.log "s3://${S3_BUCKET}/${S3_PREFIX}/run.log"
 
     UPLOAD_OK=true
     echo "Upload complete."
