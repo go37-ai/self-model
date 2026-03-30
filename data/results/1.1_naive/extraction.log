@@ -425,3 +425,13 @@
 2026-03-29 21:17:59,544 [__main__] INFO:   Naive vs informed:  None
 2026-03-29 21:17:59,544 [__main__] INFO:   Results saved to:   data/results/1.1_naive
 2026-03-29 21:17:59,544 [__main__] INFO: ============================================================
+2026-03-30 03:13:38,130 [__main__] INFO: ============================================================
+2026-03-30 03:13:38,130 [__main__] INFO: Experiment 1.1 — Self-Reification Direction Extraction
+2026-03-30 03:13:38,130 [__main__] INFO: ============================================================
+2026-03-30 03:13:38,131 [__main__] INFO: Profile: cloud
+2026-03-30 03:13:38,131 [__main__] INFO: Model: llama
+2026-03-30 03:13:38,131 [__main__] INFO: Output: data/results/1.1_naive
+2026-03-30 03:13:38,131 [__main__] INFO: Loading model...
+2026-03-30 03:13:38,135 [utils.model_loader] INFO: Loading model=meta-llama/Llama-3.3-70B-Instruct profile=cloud dtype=bfloat16 quantize=False
+2026-03-30 03:13:38,229 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct/resolve/main/config.json "HTTP/1.1 401 Unauthorized"
+2026-03-30 03:13:38,249 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct/resolve/main/config.json "HTTP/1.1 401 Unauthorized"
