@@ -372,6 +372,22 @@ def run_discriminant_validity(
     torch.save(formality_dir, output_dir / f"formality_direction_{model_name}_layer{layer}.pt")
     logger.info("Saved confound direction vectors to %s", output_dir)
 
+    # Per-register discriminant validity (if per-register vectors exist)
+    per_reg_path = output_dir / f"per_register_vectors_{model_name}_layer{layer}.pt"
+    if per_reg_path.exists():
+        per_reg_vectors = torch.load(per_reg_path, weights_only=True)
+        per_reg_validity = {}
+        for reg_name, reg_dir in per_reg_vectors.items():
+            per_reg_validity[reg_name] = {
+                "confidence_cosine": cosine_similarity(reg_dir, confidence_dir),
+                "formality_cosine": cosine_similarity(reg_dir, formality_dir),
+            }
+            logger.info("  %s: confidence=%.4f, formality=%.4f",
+                         reg_name,
+                         per_reg_validity[reg_name]["confidence_cosine"],
+                         per_reg_validity[reg_name]["formality_cosine"])
+        results["per_register"] = per_reg_validity
+
     # Flag any concerning overlaps
     threshold = 0.8
     concerns = []
