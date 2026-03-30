@@ -44,6 +44,10 @@ echo "============================================================"
 # Source RunPod environment (provides RUNPOD_POD_ID, RUNPOD_API_KEY, etc.)
 [ -f /etc/rp_environment ] && source /etc/rp_environment
 
+# Cache HuggingFace models on the volume so they survive container restarts
+export HF_HOME="${HF_HOME:-/workspace/.cache/huggingface}"
+mkdir -p "$HF_HOME"
+
 # Configure runpodctl early so shutdown works even if experiments fail
 if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_API_KEY:-}" ]; then
     runpodctl config --apiKey "$RUNPOD_API_KEY" 2>/dev/null || true
