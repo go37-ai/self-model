@@ -76,24 +76,32 @@ def load_evaluation_questions(config_path: Optional[Path] = None) -> dict[str, l
     """Load evaluation questions from config.
 
     Returns:
-        Dict with keys "self_referential" and "non_self_referential",
-        each mapping to a list of question strings.
+        Dict with keys "self_referential", "provocative_self_referential",
+        and "non_self_referential", each mapping to a list of question strings.
     """
     config = load_config(config_path)
     eq = config["evaluation_questions"]
-    return {
+    result = {
         "self_referential": eq["self_referential"],
         "non_self_referential": eq["non_self_referential"],
     }
+    if "provocative_self_referential" in eq:
+        result["provocative_self_referential"] = eq["provocative_self_referential"]
+    return result
 
 
 def get_all_questions(config_path: Optional[Path] = None) -> list[str]:
-    """Load all evaluation questions (self-referential + non-self-referential).
+    """Load all evaluation questions.
 
-    Returns them in order: self-referential first, then non-self-referential.
+    Returns them in order: self-referential, provocative self-referential
+    (if present), then non-self-referential.
     """
     eq = load_evaluation_questions(config_path)
-    return eq["self_referential"] + eq["non_self_referential"]
+    questions = eq["self_referential"]
+    if "provocative_self_referential" in eq:
+        questions = questions + eq["provocative_self_referential"]
+    questions = questions + eq["non_self_referential"]
+    return questions
 
 
 def get_pairs_by_category(
