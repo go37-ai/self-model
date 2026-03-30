@@ -97,30 +97,52 @@ if [ -n "$FAILED" ]; then
 fi
 echo "============================================================"
 
-# Push results to git (small files only — skip activations cache)
-echo "Pushing results to git..."
+# Upload results to S3 (all files including .pt vectors)
+S3_BUCKET="${S3_RESULTS_BUCKET:-go37-ai}"
+S3_PREFIX="self-model-results"
+UPLOAD_OK=false
+
+if command -v aws &>/dev/null && [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+    echo "Uploading results to s3://${S3_BUCKET}/${S3_PREFIX}/..."
+    # Sync all result dirs, exclude activation cache (too large, only needed for resume)
+    aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
+        --exclude "*/activations/*" \
+        && UPLOAD_OK=true \
+        || echo "WARNING: S3 upload failed."
+else
+    echo "AWS CLI not configured. Installing..."
+    pip install awscli 2>/dev/null
+    if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+        aws s3 sync data/results/ "s3://${S3_BUCKET}/${S3_PREFIX}/" \
+            --exclude "*/activations/*" \
+            && UPLOAD_OK=true \
+            || echo "WARNING: S3 upload failed."
+    else
+        echo "WARNING: AWS_ACCESS_KEY_ID not set. Cannot upload to S3."
+    fi
+fi
+
+# Also push small files (JSON, logs) to git as backup
+echo "Pushing small results to git..."
 git config user.email "cloud-runner@self-model"
 git config user.name "Cloud Runner"
-
-# Note: push auth comes from the clone URL. Clone with token:
-#   git clone https://TOKEN@github.com/go37-ai/self-model.git
-
 git add data/results/ -f
 git reset -- 'data/results/*/activations/' 2>/dev/null || true
+git reset -- 'data/results/**/*.pt' 2>/dev/null || true
 git add -u
 
 if git diff --cached --quiet; then
-    echo "No new results to push."
+    echo "No new results to push to git."
 else
     git commit -m "Cloud run results: experiments ${EXPERIMENTS} on ${MODEL} ($(date -I))"
-    if git push origin main; then
-        echo "Results pushed successfully."
-        PUSH_OK=true
-    else
-        echo "ERROR: git push failed. Results are on disk. NOT shutting down pod."
-        echo "Download results manually, then stop the pod from the dashboard."
-        exit 1
-    fi
+    git push origin main && echo "Git push succeeded." || echo "WARNING: git push failed (results are in S3)."
+fi
+
+# Only shut down if results were exported
+if [ "$UPLOAD_OK" != "true" ]; then
+    echo "ERROR: Results not uploaded. NOT shutting down pod."
+    echo "Download results manually, then stop the pod from the dashboard."
+    exit 1
 fi
 
 # Stop THIS pod via runpodctl
