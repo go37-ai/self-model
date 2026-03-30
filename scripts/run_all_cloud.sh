@@ -38,10 +38,13 @@ echo "Model: $MODEL | Profile: $PROFILE | Experiments: $EXPERIMENTS | Pairs: $PA
 echo "Started: $(date -Iseconds)"
 echo "============================================================"
 
+# Source RunPod environment (provides RUNPOD_POD_ID, RUNPOD_API_KEY, etc.)
+[ -f /etc/rp_environment ] && source /etc/rp_environment
+
 # Configure runpodctl early so shutdown works even if experiments fail
 if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_API_KEY:-}" ]; then
     runpodctl config --apiKey "$RUNPOD_API_KEY" 2>/dev/null || true
-    echo "runpodctl configured."
+    echo "runpodctl configured. Pod ID: ${RUNPOD_POD_ID:-unknown}"
 fi
 
 # Ensure we're in the repo root
@@ -120,35 +123,29 @@ else
     fi
 fi
 
-# Stop THIS pod via runpodctl (only if push succeeded or no results to push)
-# Match pod by hostname to avoid stopping other running pods
+# Stop THIS pod via runpodctl
+# RUNPOD_POD_ID is injected by RunPod but only available in interactive shells.
+# Try sourcing common profile locations to pick it up.
 echo "Stopping pod..."
-if command -v runpodctl &>/dev/null; then
-    HOSTNAME=$(hostname)
-    # runpodctl get pod output: ID, NAME, GPU, IMAGE, STATUS
-    # Pod IDs contain the hostname prefix in container environments
-    POD_ID=$(runpodctl get pod 2>/dev/null | awk -v host="$HOSTNAME" 'NR>1 {print $1}' | while read id; do
-        if echo "$HOSTNAME" | grep -q "${id:0:12}" 2>/dev/null || echo "$id" | grep -q "${HOSTNAME:0:12}" 2>/dev/null; then
-            echo "$id"
-            break
-        fi
-    done)
-    # Fallback: if only one pod is running, stop it
-    if [ -z "$POD_ID" ]; then
-        NUM_PODS=$(runpodctl get pod 2>/dev/null | awk 'NR>1' | wc -l)
-        if [ "$NUM_PODS" = "1" ]; then
-            POD_ID=$(runpodctl get pod 2>/dev/null | awk 'NR==2 {print $1}')
-            echo "Only one pod running, assuming it's this one."
-        else
-            echo "Multiple pods running and cannot identify this one. Stop manually."
-            echo "Hostname: $HOSTNAME"
-            runpodctl get pod 2>/dev/null
-            exit 0
-        fi
-    fi
-    if [ -n "$POD_ID" ]; then
-        echo "Stopping pod $POD_ID..."
-        runpodctl stop pod "$POD_ID"
+if [ -z "${RUNPOD_POD_ID:-}" ]; then
+    for f in /etc/rp_environment /etc/environment /root/.bashrc; do
+        [ -f "$f" ] && source "$f" 2>/dev/null
+    done
+fi
+
+if command -v runpodctl &>/dev/null && [ -n "${RUNPOD_POD_ID:-}" ]; then
+    echo "Stopping pod $RUNPOD_POD_ID..."
+    runpodctl stop pod "$RUNPOD_POD_ID"
+elif command -v runpodctl &>/dev/null; then
+    # Fallback: if only one RUNNING pod, stop it
+    RUNNING=$(runpodctl get pod 2>/dev/null | awk '$NF=="RUNNING" {print $1}')
+    NUM=$(echo "$RUNNING" | grep -c . || true)
+    if [ "$NUM" = "1" ]; then
+        echo "One running pod found: $RUNNING. Stopping..."
+        runpodctl stop pod "$RUNNING"
+    else
+        echo "Cannot identify this pod. RUNPOD_POD_ID not set, $NUM running pods found."
+        echo "Stop the pod manually."
     fi
 else
     echo "runpodctl not available. Stop the pod manually."
