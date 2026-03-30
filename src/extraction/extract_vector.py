@@ -255,7 +255,16 @@ def run_extraction(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     num_layers = model_config["num_layers"]
-    layers = list(range(num_layers))
+    # For large models, record every Nth layer to reduce memory.
+    # Default stride=1 (all layers). For 72B+ models, stride=4 recommended.
+    layer_stride = model_config.get("layer_stride", 1)
+    layers = list(range(0, num_layers, layer_stride))
+    if layer_stride > 1:
+        # Always include the last layer
+        if (num_layers - 1) not in layers:
+            layers.append(num_layers - 1)
+        logger.info("Using layer stride %d: recording %d of %d layers",
+                     layer_stride, len(layers), num_layers)
     model_name = model_config["name"].replace("/", "_")
 
     run_informed = pairs_mode in ("all", "informed")
