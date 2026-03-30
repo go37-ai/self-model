@@ -235,6 +235,35 @@ def main():
                     logger.info("  %s: %.4f", key, naive_validity[key])
                 logger.info("  Is discriminant: %s", naive_validity["is_discriminant"])
 
+                # Compute corrected split-half reliability if formality is a concern
+                if abs(naive_validity["formality_cosine"]) > 0.4:
+                    from utils.activation_cache import load_activations
+                    from utils.metrics import split_half_reliability_corrected
+
+                    formality_path = args.output_dir / f"formality_direction_{model_name}_naive_layer{naive_best_layer}.pt"
+                    act_dir = args.output_dir / "activations"
+                    if formality_path.exists() and act_dir.exists():
+                        logger.info("=== Computing corrected split-half reliability ===")
+                        formality_vec = torch.load(formality_path, weights_only=True)
+                        pos_acts = load_activations(act_dir, f"positive_naive_{model_name}", [naive_best_layer])
+                        neg_acts = load_activations(act_dir, f"negative_naive_{model_name}", [naive_best_layer])
+                        if naive_best_layer in pos_acts and naive_best_layer in neg_acts:
+                            corr_rel = split_half_reliability_corrected(
+                                pos_acts[naive_best_layer], neg_acts[naive_best_layer],
+                                formality_vec, n_splits=args.n_splits,
+                            )
+                            logger.info("  Corrected split-half reliability: %.4f", corr_rel)
+                            # Save
+                            import json
+                            corr_result = {
+                                "layer": naive_best_layer,
+                                "original_reliability": summary["naive_best_layer_reliability"],
+                                "corrected_reliability": corr_rel,
+                                "formality_cosine": naive_validity["formality_cosine"],
+                            }
+                            with open(args.output_dir / f"corrected_reliability_{model_name}_naive.json", "w") as f:
+                                json.dump(corr_result, f, indent=2)
+
     # Final summary
     logger.info("=" * 60)
     logger.info("EXTRACTION SUMMARY")
