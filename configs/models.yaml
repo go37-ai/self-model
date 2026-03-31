@@ -45,6 +45,7 @@ models:
     name: meta-llama/Llama-3.3-70B-Instruct
     num_layers: 80
     hidden_size: 8192
+    layer_stride: 4            # record every 4th layer to fit in VRAM
     target_layer: 40           # from assistant-axis config
     assistant_axis_config: llama-3.3-70b/capping_config.pt
 
