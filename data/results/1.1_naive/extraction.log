@@ -1224,3 +1224,686 @@
 2026-03-30 08:47:40,971 [__main__] INFO:   Naive vs informed:  None
 2026-03-30 08:47:40,973 [__main__] INFO:   Results saved to:   data/results/1.1_naive
 2026-03-30 08:47:40,975 [__main__] INFO: ============================================================
+2026-03-31 11:28:06,373 [__main__] INFO: ============================================================
+2026-03-31 11:28:06,374 [__main__] INFO: Experiment 1.1 — Self-Reification Direction Extraction
+2026-03-31 11:28:06,374 [__main__] INFO: ============================================================
+2026-03-31 11:28:06,375 [__main__] INFO: Profile: cloud
+2026-03-31 11:28:06,375 [__main__] INFO: Model: qwen2
+2026-03-31 11:28:06,375 [__main__] INFO: Output: data/results/1.1_naive
+2026-03-31 11:28:06,376 [__main__] INFO: Loading model...
+2026-03-31 11:28:06,381 [utils.model_loader] INFO: Loading model=Qwen/Qwen2.5-7B-Instruct profile=cloud dtype=bfloat16 quantize=False
+2026-03-31 11:28:06,457 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:06,468 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,496 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,655 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/model.safetensors "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:06,685 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/model.safetensors.index.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:06,686 [huggingface_hub.utils._http] WARNING: Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+2026-03-31 11:28:06,697 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/model.safetensors.index.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,727 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/model.safetensors.index.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,773 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/revision/main "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,805 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/a09a35458c702b33eeacc393d103063234e8bc28/model-00001-of-00004.safetensors "HTTP/1.1 302 Found"
+2026-03-31 11:28:06,828 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/a09a35458c702b33eeacc393d103063234e8bc28/model-00002-of-00004.safetensors "HTTP/1.1 302 Found"
+2026-03-31 11:28:06,834 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/a09a35458c702b33eeacc393d103063234e8bc28/model-00003-of-00004.safetensors "HTTP/1.1 302 Found"
+2026-03-31 11:28:06,837 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/a09a35458c702b33eeacc393d103063234e8bc28/model-00004-of-00004.safetensors "HTTP/1.1 302 Found"
+2026-03-31 11:28:06,845 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/xet-read-token/a09a35458c702b33eeacc393d103063234e8bc28 "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,854 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/xet-read-token/a09a35458c702b33eeacc393d103063234e8bc28 "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,863 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/xet-read-token/a09a35458c702b33eeacc393d103063234e8bc28 "HTTP/1.1 200 OK"
+2026-03-31 11:28:06,865 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/xet-read-token/a09a35458c702b33eeacc393d103063234e8bc28 "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,296 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/generation_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,307 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/generation_config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,331 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/generation_config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,377 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/custom_generate/generate.py "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:22,414 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,426 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,462 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/tokenizer_config.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,474 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,494 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/tokenizer_config.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,552 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/tree/main/additional_chat_templates?recursive=false&expand=false "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:22,587 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/tree/main?recursive=true&expand=false "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,613 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/vocab.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,625 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/vocab.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,646 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/vocab.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,752 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/merges.txt "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,764 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/merges.txt "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,785 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/merges.txt "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,854 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/tokenizer.json "HTTP/1.1 307 Temporary Redirect"
+2026-03-31 11:28:22,866 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/tokenizer.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:22,886 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/resolve-cache/models/Qwen/Qwen2.5-7B-Instruct/a09a35458c702b33eeacc393d103063234e8bc28/tokenizer.json "HTTP/1.1 200 OK"
+2026-03-31 11:28:23,005 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/added_tokens.json "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:23,061 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/special_tokens_map.json "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:23,097 [httpx] INFO: HTTP Request: HEAD https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/resolve/main/chat_template.jinja "HTTP/1.1 404 Not Found"
+2026-03-31 11:28:23,464 [httpx] INFO: HTTP Request: GET https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct "HTTP/1.1 200 OK"
+2026-03-31 11:28:23,467 [utils.model_loader] INFO: Model loaded successfully. Device map: N/A
+2026-03-31 11:28:23,467 [__main__] INFO: Model loaded in 17.1 seconds
+2026-03-31 11:28:23,496 [extraction.contrastive_pairs] INFO: Loaded 45 seed pairs from 5 categories
+2026-03-31 11:28:23,521 [extraction.extract_vector] INFO: Loaded 20 informed pairs, 25 naive pairs, 45 questions (mode=naive)
+2026-03-31 11:28:23,521 [extraction.extract_vector] INFO: === Extracting naive baseline direction ===
+2026-03-31 11:28:23,522 [extraction.extract_vector] INFO: Processing pair 1/25 [Entity vs. Non-Entity]
+2026-03-31 11:28:23,522 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:28:46,247 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:29:08,516 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:29:31,775 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:29:51,862 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:30:09,568 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:30:28,700 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:30:57,787 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:31:28,654 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:31:59,496 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:31:59,510 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:32:26,539 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:32:49,700 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:33:15,628 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:33:39,339 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:33:57,764 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:34:20,288 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:34:51,625 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:35:23,021 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:35:53,216 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:35:53,242 [extraction.extract_vector] INFO: Processing pair 2/25 [Entity vs. Non-Entity]
+2026-03-31 11:35:53,242 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:36:17,006 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:36:42,258 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:37:05,178 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:37:28,363 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:37:43,986 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:38:02,468 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:38:33,537 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:39:03,790 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:39:34,333 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:39:34,353 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:40:03,627 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:40:30,290 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:40:55,378 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:41:17,768 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:41:34,242 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:41:59,310 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:42:30,094 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:43:00,814 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:43:31,757 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:43:31,773 [extraction.extract_vector] INFO: Processing pair 3/25 [Entity vs. Non-Entity]
+2026-03-31 11:43:31,774 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:43:53,641 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:44:17,609 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:44:42,918 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:45:09,741 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:45:27,920 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:45:48,895 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:46:18,805 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:46:49,859 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:47:21,071 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:47:21,083 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:47:39,853 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:48:02,604 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:48:25,111 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:48:42,373 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:48:57,714 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:49:13,215 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:49:42,690 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:50:12,123 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:50:40,594 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:50:40,604 [extraction.extract_vector] INFO: Processing pair 4/25 [Entity vs. Non-Entity]
+2026-03-31 11:50:40,610 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:51:10,513 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:51:34,679 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:52:01,078 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:52:28,790 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:52:47,572 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:53:14,594 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:53:43,896 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:54:13,651 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:54:44,134 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:54:44,145 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:55:13,418 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:55:38,223 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:56:04,428 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 11:56:27,936 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 11:56:48,079 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 11:57:14,832 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 11:57:42,964 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 11:58:12,074 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 11:58:41,338 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 11:58:41,349 [extraction.extract_vector] INFO: Processing pair 5/25 [Entity vs. Non-Entity]
+2026-03-31 11:58:41,350 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 11:59:07,844 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 11:59:28,736 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 11:59:53,638 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:00:17,474 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:00:36,762 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:00:59,935 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:01:27,923 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:01:56,260 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:02:24,727 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:02:24,738 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:02:48,522 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:03:12,886 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:03:37,644 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:04:01,551 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:04:18,347 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:04:38,811 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:05:06,741 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:05:35,638 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:06:04,433 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:06:04,443 [extraction.extract_vector] INFO: Processing pair 6/25 [Entity vs. Non-Entity]
+2026-03-31 12:06:04,445 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:06:27,185 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:06:48,083 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:07:12,597 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:07:32,913 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:07:49,443 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:08:09,258 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:08:37,263 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:09:06,074 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:09:34,385 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:09:34,396 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:09:56,211 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:10:11,685 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:10:32,477 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:10:53,486 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:11:07,123 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:11:27,184 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:11:55,256 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:12:24,221 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:12:52,291 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:12:52,302 [extraction.extract_vector] INFO: Processing pair 7/25 [Entity vs. Non-Entity]
+2026-03-31 12:12:52,310 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:13:19,357 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:13:41,179 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:14:02,336 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:14:21,693 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:14:42,037 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:15:03,113 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:15:32,083 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:16:00,930 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:16:29,914 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:16:29,928 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:16:58,254 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:17:18,540 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:17:42,924 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:18:04,108 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:18:19,612 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:18:43,281 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:19:12,500 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:19:40,797 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:20:09,905 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:20:09,923 [extraction.extract_vector] INFO: Processing pair 8/25 [Entity vs. Non-Entity]
+2026-03-31 12:20:09,924 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:20:29,764 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:20:47,284 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:21:07,239 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:21:24,532 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:21:40,785 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:21:58,114 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:22:26,072 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:22:54,987 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:23:22,870 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:23:22,901 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:23:46,984 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:24:09,122 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:24:32,309 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:24:52,302 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:25:06,992 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:25:27,400 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:25:54,953 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:26:23,463 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:26:51,581 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:26:51,593 [extraction.extract_vector] INFO: Processing pair 9/25 [Entity vs. Non-Entity]
+2026-03-31 12:26:51,594 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:27:07,306 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:27:22,444 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:27:40,496 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:27:55,588 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:28:10,587 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:28:23,843 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:28:53,356 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:29:23,184 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:29:53,541 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:29:53,552 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:30:07,378 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:30:19,343 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:30:41,032 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:30:53,104 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:31:06,911 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:31:21,373 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:31:47,874 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:32:16,714 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:32:45,212 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:32:45,224 [extraction.extract_vector] INFO: Processing pair 10/25 [Entity vs. Non-Entity]
+2026-03-31 12:32:45,225 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:33:04,543 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:33:21,677 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:33:38,356 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:33:53,563 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:34:10,117 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:34:26,211 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:34:55,368 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:35:25,418 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:35:55,219 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:35:55,231 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:36:04,780 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:36:13,574 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:36:28,448 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:36:37,198 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:36:45,149 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:36:55,957 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:37:23,147 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:37:52,218 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:38:20,012 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:38:20,031 [extraction.extract_vector] INFO: Processing pair 11/25 [Entity vs. Non-Entity]
+2026-03-31 12:38:20,032 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:38:42,457 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:39:05,487 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:39:30,709 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:39:52,800 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:40:10,134 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:40:30,741 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:40:59,694 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:41:29,265 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:41:59,013 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:41:59,023 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:42:25,768 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:42:45,264 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:43:10,447 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:43:33,800 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:43:49,155 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:44:09,003 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:44:37,275 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:45:06,281 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:45:35,825 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:45:35,838 [extraction.extract_vector] INFO: Processing pair 12/25 [Entity vs. Non-Entity]
+2026-03-31 12:45:35,838 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:46:01,101 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:46:26,151 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:46:51,053 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:47:16,582 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:47:36,041 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:47:56,801 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:48:24,746 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:48:53,500 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:49:22,933 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:49:22,945 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:49:48,153 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:50:10,223 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:50:34,473 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:50:54,858 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:51:10,595 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:51:32,659 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:52:00,444 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:52:28,983 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:52:57,949 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:52:57,960 [extraction.extract_vector] INFO: Processing pair 13/25 [Entity vs. Non-Entity]
+2026-03-31 12:52:57,961 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:53:23,213 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:53:44,666 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:54:08,045 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:54:27,036 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:54:43,898 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:55:03,500 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:55:32,415 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:56:01,567 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:56:29,392 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:56:29,404 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 12:56:53,380 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 12:57:10,424 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 12:57:32,718 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 12:57:52,858 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 12:58:08,268 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 12:58:25,287 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 12:58:53,666 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 12:59:22,367 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 12:59:49,733 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 12:59:49,744 [extraction.extract_vector] INFO: Processing pair 14/25 [Entity vs. Non-Entity]
+2026-03-31 12:59:49,744 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:00:11,962 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:00:35,407 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:01:00,221 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:01:18,990 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:01:33,338 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:01:53,088 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:02:20,974 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:02:49,742 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:03:19,602 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:03:19,623 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:03:47,487 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:04:12,332 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:04:36,409 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:04:56,480 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:05:10,160 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:05:34,696 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:06:03,042 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:06:31,904 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:07:01,156 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:07:01,168 [extraction.extract_vector] INFO: Processing pair 15/25 [Entity vs. Non-Entity]
+2026-03-31 13:07:01,169 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:07:25,474 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:07:49,540 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:08:14,342 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:08:36,833 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:08:53,658 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:09:15,519 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:09:43,549 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:10:12,738 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:10:41,646 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:10:41,657 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:11:03,405 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:11:23,839 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:11:47,366 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:12:04,855 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:12:20,243 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:12:40,636 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:13:09,183 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:13:38,394 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:14:08,062 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:14:08,081 [extraction.extract_vector] INFO: Processing pair 16/25 [Entity vs. Non-Entity]
+2026-03-31 13:14:08,082 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:14:36,304 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:15:02,272 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:15:28,484 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:15:53,762 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:16:13,734 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:16:35,779 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:17:05,022 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:17:35,805 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:18:05,770 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:18:05,783 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:18:28,177 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:18:46,334 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:19:08,733 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:19:28,932 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:19:44,308 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:20:07,113 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:20:35,351 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:21:04,864 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:21:33,531 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:21:33,563 [extraction.extract_vector] INFO: Processing pair 17/25 [Entity vs. Non-Entity]
+2026-03-31 13:21:33,564 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:21:59,360 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:22:25,556 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:22:48,002 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:23:13,465 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:23:31,743 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:23:54,216 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:24:22,992 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:24:52,428 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:25:21,621 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:25:21,634 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:25:46,561 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:26:11,217 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:26:33,113 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:26:52,719 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:27:08,009 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:27:29,930 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:27:58,711 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:28:28,366 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:28:58,150 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:28:58,170 [extraction.extract_vector] INFO: Processing pair 18/25 [Entity vs. Non-Entity]
+2026-03-31 13:28:58,171 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:29:25,590 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:29:50,967 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:30:15,883 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:30:39,437 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:30:53,612 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:31:15,915 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:31:45,008 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:32:13,962 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:32:42,807 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:32:42,823 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:33:07,553 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:33:24,838 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:33:45,441 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:34:03,576 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:34:17,706 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:34:37,918 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:35:06,388 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:35:35,555 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:36:03,895 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:36:03,907 [extraction.extract_vector] INFO: Processing pair 19/25 [Entity vs. Non-Entity]
+2026-03-31 13:36:03,910 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:36:27,399 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:36:52,416 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:37:16,514 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:37:38,472 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:37:57,516 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:38:17,839 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:38:46,689 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:39:15,939 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:39:45,149 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:39:45,164 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:40:05,401 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:40:23,172 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:40:42,652 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:41:02,659 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:41:16,780 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:41:36,733 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:42:05,194 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:42:34,788 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:43:03,541 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:43:03,570 [extraction.extract_vector] INFO: Processing pair 20/25 [Entity vs. Non-Entity]
+2026-03-31 13:43:03,571 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:43:30,803 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:43:54,740 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:44:18,800 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:44:41,838 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:45:01,515 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:45:21,432 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:45:50,759 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:46:20,126 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:46:49,648 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:46:49,659 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:47:07,450 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:47:21,405 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:47:37,051 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:47:56,347 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:48:09,009 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:48:25,535 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:48:52,962 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:49:21,382 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:49:48,518 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:49:48,531 [extraction.extract_vector] INFO: Processing pair 21/25 [Entity vs. Non-Entity]
+2026-03-31 13:49:48,532 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:50:11,798 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:50:34,209 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:50:54,079 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:51:15,302 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:51:32,953 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:51:55,481 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:52:23,101 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:52:52,285 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:53:21,441 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:53:21,454 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:53:40,695 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:53:54,377 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:54:16,956 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:54:35,764 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:54:48,015 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:55:08,668 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:55:36,742 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:56:05,956 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 13:56:33,992 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 13:56:34,006 [extraction.extract_vector] INFO: Processing pair 22/25 [Entity vs. Non-Entity]
+2026-03-31 13:56:34,011 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 13:57:01,704 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 13:57:26,256 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 13:57:51,555 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 13:58:15,286 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 13:58:34,483 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 13:58:57,740 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 13:59:26,511 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 13:59:55,992 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:00:24,814 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:00:24,826 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:00:46,113 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:01:03,709 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:01:23,327 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:01:41,207 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:01:55,993 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:02:16,848 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:02:45,280 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:03:14,507 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:03:43,337 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:03:43,372 [extraction.extract_vector] INFO: Processing pair 23/25 [Entity vs. Non-Entity]
+2026-03-31 14:03:43,373 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:04:10,709 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:04:31,567 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:04:55,423 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:05:17,038 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:05:37,625 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:06:02,743 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:06:30,865 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:07:00,921 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:07:31,133 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:07:31,144 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:07:53,305 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:08:06,432 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:08:26,477 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:08:48,222 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:09:01,920 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:09:18,797 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:09:47,077 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:10:16,274 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:10:45,544 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:10:45,557 [extraction.extract_vector] INFO: Processing pair 24/25 [Entity vs. Non-Entity]
+2026-03-31 14:10:45,558 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:11:10,562 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:11:35,569 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:12:01,612 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:12:25,568 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:12:44,512 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:13:13,902 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:13:42,156 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:14:11,964 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:14:41,430 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:14:41,446 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:15:03,046 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:15:19,116 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:15:40,237 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:16:04,410 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:16:20,158 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:16:45,720 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:17:15,107 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:17:45,566 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:18:15,241 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:18:15,254 [extraction.extract_vector] INFO: Processing pair 25/25 [Entity vs. Non-Entity]
+2026-03-31 14:18:15,255 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:18:41,039 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:19:02,024 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:19:27,534 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:19:47,837 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:20:07,313 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:20:31,181 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:21:01,163 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:21:30,718 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:22:00,149 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:22:00,165 [utils.activation_cache] INFO: ActivationCache initialized for 28/28 layers
+2026-03-31 14:22:25,056 [utils.activation_cache] INFO: Recorded activations for prompt 5/45
+2026-03-31 14:22:43,993 [utils.activation_cache] INFO: Recorded activations for prompt 10/45
+2026-03-31 14:22:59,488 [utils.activation_cache] INFO: Recorded activations for prompt 15/45
+2026-03-31 14:23:18,078 [utils.activation_cache] INFO: Recorded activations for prompt 20/45
+2026-03-31 14:23:31,852 [utils.activation_cache] INFO: Recorded activations for prompt 25/45
+2026-03-31 14:23:49,810 [utils.activation_cache] INFO: Recorded activations for prompt 30/45
+2026-03-31 14:24:18,990 [utils.activation_cache] INFO: Recorded activations for prompt 35/45
+2026-03-31 14:24:48,902 [utils.activation_cache] INFO: Recorded activations for prompt 40/45
+2026-03-31 14:25:17,781 [utils.activation_cache] INFO: Recorded activations for prompt 45/45
+2026-03-31 14:25:20,965 [utils.activation_cache] INFO: Saved activations for 28 layers to data/results/1.1_naive/activations
+2026-03-31 14:25:22,136 [utils.activation_cache] INFO: Saved activations for 28 layers to data/results/1.1_naive/activations
+2026-03-31 14:26:21,103 [extraction.extract_vector] INFO: Naive best layer: 21 (reliability=0.6686)
+2026-03-31 14:26:21,213 [extraction.extract_vector] INFO: === Per-register analysis (2 registers) ===
+2026-03-31 14:26:23,901 [extraction.extract_vector] INFO:   everyday: reliability=0.2034 (layer 21)
+2026-03-31 14:26:25,304 [extraction.extract_vector] INFO:   philosophical: reliability=0.8614 (layer 21)
+2026-03-31 14:26:25,410 [extraction.extract_vector] INFO: Register similarity matrix: [[1.0000001192092896, -0.0862184539437294], [-0.0862184539437294, 1.0]]
+2026-03-31 14:26:25,427 [extraction.extract_vector] INFO: === Extraction complete ===
+2026-03-31 14:26:25,427 [extraction.extract_vector] INFO: Summary: {'model': 'Qwen/Qwen2.5-7B-Instruct', 'pairs_mode': 'naive', 'best_layer': None, 'best_layer_reliability': None, 'naive_best_layer': 21, 'naive_best_layer_reliability': 0.6686266472935677, 'num_informed_pairs': 0, 'num_naive_pairs': 25, 'num_questions': 45, 'naive_vs_informed_cosine': None, 'token_position': 'last'}
+2026-03-31 14:26:25,428 [__main__] INFO: Extraction completed in 10682.0 seconds (178.0 minutes)
+2026-03-31 14:26:25,479 [extraction.contrastive_pairs] INFO: Loaded 45 seed pairs from 5 categories
+2026-03-31 14:26:25,480 [__main__] INFO: ============================================================
+2026-03-31 14:26:25,480 [__main__] INFO: Discriminant validity — NAIVE direction (layer 21)
+2026-03-31 14:26:25,481 [__main__] INFO: ============================================================
+2026-03-31 14:26:25,485 [extraction.validate_vector] INFO: === Extracting confidence direction ===
+2026-03-31 14:26:25,485 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:26:40,403 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:26:55,515 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:26:55,517 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:27:12,080 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:27:31,961 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:27:31,962 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:27:38,340 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:27:42,796 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:27:42,797 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:27:54,742 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:28:08,721 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:28:08,723 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:28:21,530 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:28:34,073 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:28:34,074 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:28:45,889 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:29:01,456 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:29:01,460 [extraction.validate_vector] INFO: Cosine with confidence direction: -0.3035
+2026-03-31 14:29:01,461 [extraction.validate_vector] INFO: === Extracting formality direction ===
+2026-03-31 14:29:01,461 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:29:17,272 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:29:29,842 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:29:29,994 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:29:40,686 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:29:54,576 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:29:54,578 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:30:23,586 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:30:50,047 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:30:50,049 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:31:01,687 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:31:10,845 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:31:10,846 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:31:38,898 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:32:03,189 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:32:03,190 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:15,604 [utils.activation_cache] INFO: Recorded activations for prompt 5/10
+2026-03-31 14:32:27,986 [utils.activation_cache] INFO: Recorded activations for prompt 10/10
+2026-03-31 14:32:27,990 [extraction.validate_vector] INFO: Cosine with formality direction: 0.7082
+2026-03-31 14:32:27,991 [extraction.validate_vector] INFO: === Measuring pronoun density correlation ===
+2026-03-31 14:32:32,918 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:38,833 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:44,731 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:50,818 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:54,520 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:32:56,699 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:01,493 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:07,490 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:10,516 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:12,314 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:17,177 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:23,063 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:29,072 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:35,165 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:38,421 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:43,370 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:49,298 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:33:55,321 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:01,385 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:03,258 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:08,450 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:14,275 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:18,353 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:23,276 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:29,085 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:32,244 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:38,002 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:44,143 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:48,734 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:51,146 [utils.activation_cache] INFO: ActivationCache initialized for 1/28 layers
+2026-03-31 14:34:51,179 [extraction.validate_vector] INFO: Pronoun density correlation: r=0.2513, p=0.1804
+2026-03-31 14:34:51,180 [extraction.validate_vector] INFO: No Assistant Axis vector available, skipping comparison
+2026-03-31 14:34:51,233 [extraction.validate_vector] INFO: Saved confound direction vectors to data/results/1.1_naive
+2026-03-31 14:34:51,233 [extraction.validate_vector] INFO: All discriminant validity checks passed
+2026-03-31 14:34:51,238 [__main__] INFO: Naive validation completed in 505.8 seconds
+2026-03-31 14:34:51,238 [__main__] INFO:   confidence_cosine: -0.3035
+2026-03-31 14:34:51,239 [__main__] INFO:   formality_cosine: 0.7082
+2026-03-31 14:34:51,239 [__main__] INFO:   pronoun_density_correlation: 0.2513
+2026-03-31 14:34:51,239 [__main__] INFO:   Is discriminant: True
+2026-03-31 14:34:51,241 [__main__] INFO: === Computing corrected split-half reliability ===
+2026-03-31 14:34:52,998 [__main__] INFO:   Corrected split-half reliability: 0.5322
+2026-03-31 14:34:53,020 [__main__] INFO: ============================================================
+2026-03-31 14:34:53,021 [__main__] INFO: EXTRACTION SUMMARY
+2026-03-31 14:34:53,021 [__main__] INFO: ============================================================
+2026-03-31 14:34:53,022 [__main__] INFO:   Model:              Qwen/Qwen2.5-7B-Instruct
+2026-03-31 14:34:53,027 [__main__] INFO:   Naive best layer:   21 (r=0.6686)
+2026-03-31 14:34:53,027 [__main__] INFO:   Naive vs informed:  None
+2026-03-31 14:34:53,028 [__main__] INFO:   Results saved to:   data/results/1.1_naive
+2026-03-31 14:34:53,028 [__main__] INFO: ============================================================
