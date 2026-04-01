@@ -136,7 +136,7 @@ def main():
                     "condition": condition,
                     "question_type": q_type,
                     "question": question,
-                    "system_prompt_start": system_prompt[:100],
+                    "system_prompt": system_prompt,
                     "response": response,
                 }
                 f.write(json.dumps(record) + "\n")
