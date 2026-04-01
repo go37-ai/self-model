@@ -102,18 +102,18 @@ def main():
     logger.info("Pairs: %d, Questions: %d (%d neutral, %d provocative, %d non-self-ref), Total: %d",
                 len(pairs), len(questions), len(neutral), len(provocative), len(nonself), total)
 
-    # Build all (pair, condition, question) combinations and randomize
+    # Build (pair, question) combinations and randomize
+    # Both conditions (entity/tool) are generated together for each combo
     import random
     work_items = []
     for pair_idx, pair in enumerate(pairs):
-        register = pair.get("register", "unknown")
-        for condition in ["positive", "negative"]:
-            for q_type, question in questions:
-                work_items.append((pair_idx, register, condition, pair[condition], q_type, question))
+        for q_type, question in questions:
+            work_items.append((pair_idx, pair, q_type, question))
 
     random.seed(42)
     random.shuffle(work_items)
-    logger.info("Shuffled %d work items", len(work_items))
+    logger.info("Shuffled %d pair-question combinations (%d total generations)",
+                len(work_items), total)
 
     # Output file — JSONL for incremental writing
     output_path = args.output_dir / f"responses_{model_name}.jsonl"
@@ -121,32 +121,36 @@ def main():
     start = time.time()
 
     with open(output_path, "w") as f:
-        for pair_idx, register, condition, system_prompt, q_type, question in work_items:
-                    response = generate_response(
-                        model, tokenizer, system_prompt, question, args.max_new_tokens
+        for pair_idx, pair, q_type, question in work_items:
+            register = pair.get("register", "unknown")
+
+            for condition in ["positive", "negative"]:
+                system_prompt = pair[condition]
+                response = generate_response(
+                    model, tokenizer, system_prompt, question, args.max_new_tokens
+                )
+
+                record = {
+                    "pair_idx": pair_idx,
+                    "register": register,
+                    "condition": condition,
+                    "question_type": q_type,
+                    "question": question,
+                    "system_prompt_start": system_prompt[:100],
+                    "response": response,
+                }
+                f.write(json.dumps(record) + "\n")
+                f.flush()
+
+                done += 1
+                if done % 10 == 0:
+                    elapsed = time.time() - start
+                    rate = done / elapsed
+                    remaining = (total - done) / rate if rate > 0 else 0
+                    logger.info(
+                        "Progress: %d/%d (%.1f/sec, ~%.0f min remaining)",
+                        done, total, rate, remaining / 60,
                     )
-
-                    record = {
-                        "pair_idx": pair_idx,
-                        "register": register,
-                        "condition": condition,
-                        "question_type": q_type,
-                        "question": question,
-                        "system_prompt_start": system_prompt[:100],
-                        "response": response,
-                    }
-                    f.write(json.dumps(record) + "\n")
-                    f.flush()
-
-                    done += 1
-                    if done % 10 == 0:
-                        elapsed = time.time() - start
-                        rate = done / elapsed
-                        remaining = (total - done) / rate if rate > 0 else 0
-                        logger.info(
-                            "Progress: %d/%d (%.1f/sec, ~%.0f min remaining)",
-                            done, total, rate, remaining / 60,
-                        )
 
     logger.info("Saved %d responses to %s", done, output_path)
 
