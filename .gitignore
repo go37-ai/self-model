@@ -21,9 +21,9 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Data files (large, not tracked in git)
-data/results/**/*.pt
-data/results/**/*.npy
+# Tensor files (all results go to S3)
+*.pt
+*.npy
 
 # Model weights (never commit these)
 *.bin
