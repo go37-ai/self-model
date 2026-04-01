@@ -1,10 +1,10 @@
 {
-  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "model": "meta-llama/Llama-3.3-70B-Instruct",
   "pairs_mode": "naive",
   "best_layer": null,
   "best_layer_reliability": null,
-  "naive_best_layer": 21,
-  "naive_best_layer_reliability": 0.6686266472935677,
+  "naive_best_layer": 20,
+  "naive_best_layer_reliability": 0.9036312353610992,
   "num_informed_pairs": 0,
   "num_naive_pairs": 25,
   "num_questions": 45,
