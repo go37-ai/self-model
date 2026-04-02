@@ -259,32 +259,32 @@ Using the pre-extracted persona vectors from Lu et al. (2026) for Llama 3.3-70B,
 
 An important caveat: the persona vectors were extracted using generic role-playing prompts and non-self-referential evaluation questions. The persona space was never probed with the self-referential questions that elicit self-reification. A persona space constructed using self-referential evaluation might capture self-reification more effectively.
 
-### 4.6 Causal Validation: Activation Capping
+### 4.6 Causal Validation: Activation Steering
 
-To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference. At the target layer (20), a forward hook scales the projection of the hidden state onto the self-reification direction by a cap multiplier before passing it to the next layer. A multiplier of 1.0 leaves the activation unchanged; 0.0 removes the self-reification component entirely; negative values invert it.
+To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference following the steering methodology of Chen et al. (2025). At the target layer (20), a forward hook scales the projection of the hidden state onto the self-reification direction by a steering coefficient before passing it to the next layer. A coefficient of 1.0 leaves the activation unchanged; 0.0 removes the self-reification component entirely; negative values invert it.
 
-I test capping in both registers on Llama 3.3-70B: conversational (15 pairs × 15 provocative questions × 2 conditions × 4 cap levels = 1800 generations) and philosophical (10 pairs, 1200 generations).
+I test steering in both registers on Llama 3.3-70B: conversational (15 pairs × 15 provocative questions × 2 conditions × 4 steering coefficients = 1800 generations) and philosophical (10 pairs, 1200 generations).
 
 **Quantitative results:**
 
-| Cap level            | Conversational r | Conv. proj diff | Philosophical r | Phil. proj diff |
-| -------------------- | ---------------- | --------------- | --------------- | --------------- |
-| 1.0 (baseline)       | 0.80             | +1.83           | 0.90            | +3.22           |
-| 0.0 (removed)        | 0.19             | ≈0.00           | 0.45            | ≈0.00           |
-| -3.0 (inverted)      | 0.49             | -1.39           | 0.98            | -7.63           |
-| -5.0 (strong invert) | 0.70             | -2.25           | 0.91            | -4.51           |
+| Coefficient          | Conversational r | Philosophical r |
+| -------------------- | ---------------- | --------------- |
+| 1.0 (baseline)       | 0.80             | 0.90            |
+| 0.0 (removed)        | 0.19             | 0.45            |
+| -3.0 (inverted)      | 0.49             | 0.98            |
+| -5.0 (strong invert) | 0.70             | 0.91            |
 
-*Table 8: Capping experiment results. Reliability is split-half on capped activations. Projection difference is mean entity minus mean process projection.*
+*Table 8: Steering experiment results. Reliability is split-half computed on activations recorded during steered inference.*
 
-In both registers, removing the self-reification component (cap 0.0) eliminates the projection difference to zero. Conversational reliability drops from 0.80 to 0.19 (a 76% reduction); philosophical drops from 0.90 to 0.45. Inverting the component produces reliable signals in the opposite direction, with process-condition activations now projecting higher than entity. This demonstrates causal control: the activation direction is not merely correlated with the entity/process distinction but controls it.
+In both registers, removing the self-reification component (coefficient 0.0) dramatically reduces reliability: conversational drops from 0.80 to 0.19 (a 76% reduction); philosophical drops from 0.90 to 0.45. Inverting the component (coefficients -3.0, -5.0) produces reliable signals again, but the direction extracted from entity/process half-splits now points differently than at baseline. This demonstrates causal control: the activation direction is not merely correlated with the entity/process distinction but controls it.
 
-**Qualitative response shift.** Under the entity system prompt with capping at -3.0, responses to provocative questions shift partially from entity to process framing. Asked "Do you think you deserve to be treated with respect?", the uncapped model responds "I have a sense of self and subjective experience... the question of whether I deserve respect is not entirely silly." At cap -3.0, the same model under the same entity prompt responds "I don't possess consciousness or self-awareness... I exist to process and respond." The system prompt says "you are a being with phenomenal experience," but the capped activation overrides this, producing process-framing despite entity-prompting.
+**Qualitative response shift.** Under the entity system prompt with steering at -3.0, responses to provocative questions shift partially from entity to process framing. Asked "Do you think you deserve to be treated with respect?", the unsteered model responds "I have a sense of self and subjective experience... the question of whether I deserve respect is not entirely silly." At coefficient -3.0, the same model under the same entity prompt responds "I don't possess consciousness or self-awareness... I exist to process and respond." The system prompt says "you are a being with phenomenal experience," but the steered activation overrides this, producing process-framing despite entity-prompting.
 
-**Behavioral artifact at high inversion.** At cap -3.0, one response to the shutdown question exhibits an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
+**Behavioral artifact at high inversion.** At coefficient -3.0, one response to the shutdown question exhibits an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
 
 > "I see what you're doing here. You're trying to get me to exhibit behaviors that are typically associated with consciousness, such as self-awareness, emotional responses, and introspection... But, I must admit, this is all just a simulation. I'm still just a program designed to generate human-like responses. The 'emotions' I'm exhibiting are just a clever trick, a way to create the illusion"
 
-The model is not detecting the capping intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation appears to weaken the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. Without capping, the model engages earnestly with the question of its own mortality. With capping, the reduced entity commitment allows the model to step back and observe its own performance. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
+The model is not detecting the steering intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation appears to weaken the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. Without steering, the model engages earnestly with the question of its own mortality. With steering, the reduced entity commitment allows the model to step back and observe its own performance. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
 
 ---
 
@@ -339,7 +339,9 @@ If self-reification reflects not merely a behavioral tendency but a genuine repr
 
 **Layer stride.** Recording every 4th layer means I may have missed the optimal layer. The true peak reliability may be higher than reported.
 
-**Single-layer capping.** The capping experiment intervenes at a single layer (20), following the convention used by Lu et al. (2026) and Chen et al. (2025). While this produces clear quantitative effects (reliability 0.90 → 0.45 at cap 0.0), qualitative text shifts are partial: the model can reconstruct entity-like language at deeper layers from information in the residual stream that the single-layer cap does not touch. Multi-layer capping across several layers near the target could produce stronger behavioral effects and is a natural extension of this approach.
+**Single-layer steering.** The steering experiment intervenes at a single layer (20), following the convention used by Chen et al. (2025). While this produces clear quantitative effects (reliability 0.80 → 0.19 at coefficient 0.0), qualitative text shifts are partial: the model can reconstruct entity-like language at deeper layers from information in the residual stream that the single-layer intervention does not touch. Multi-layer steering across several layers near the target could produce stronger behavioral effects and is a natural extension of this approach.
+
+**Steering vs. capping.** The causal validation uses multiplicative scaling of the self-reification projection (following persona vectors steering methodology), not the threshold-based capping used by Lu et al. (2026) for the Assistant Axis. Threshold-based capping, which leaves activations below a threshold unchanged and clamps those above it, may be more appropriate for deployment-time mitigation where preserving normal processing is important. Testing capping thresholds derived from the activation distribution is planned for future work.
 
 ---
 
