@@ -293,13 +293,17 @@ def main():
     # Upload to S3
     import subprocess, os
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        s3_base = f"s3://go37-ai/self-model-results/{model_name}/capping_v2"
+        s3_base = f"s3://go37-ai/self-model-results/{model_name}/capping_v2/{args.register}"
         for fpath in [responses_path, results_path]:
             subprocess.run(["aws", "s3", "cp", str(fpath), f"{s3_base}/{fpath.name}"])
         # Upload activations
         act_dir = args.output_dir / "activations"
         if act_dir.exists():
             subprocess.run(["aws", "s3", "sync", str(act_dir), f"{s3_base}/activations/"])
+        # Upload run log if available
+        run_log = Path("/workspace/run.log")
+        if run_log.exists():
+            subprocess.run(["aws", "s3", "cp", str(run_log), f"{s3_base}/run.log"])
         logger.info("Uploaded to S3")
 
     # Shutdown pod
