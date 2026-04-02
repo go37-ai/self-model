@@ -205,9 +205,11 @@ def main():
                         # Save response
                         record = {
                             "pair_idx": pair_idx,
+                            "register": args.register,
                             "cap_level": cap_level,
                             "condition": condition,
                             "question": question,
+                            "system_prompt": system_prompt,
                             "response": response_text,
                         }
                         f.write(json.dumps(record) + "\n")
@@ -232,10 +234,20 @@ def main():
             # Clean up capping hook
             capper.remove()
 
-            # Compute split-half reliability at this cap level
+            # Save raw activations for potential merging with future runs
             if pos_activations and neg_activations:
                 pos_tensor = torch.stack(pos_activations)
                 neg_tensor = torch.stack(neg_activations)
+
+                act_dir = args.output_dir / "activations"
+                act_dir.mkdir(parents=True, exist_ok=True)
+                cap_str = f"cap{cap_level:+.1f}".replace(".", "p").replace("+", "pos").replace("-", "neg")
+                torch.save(pos_tensor, act_dir / f"pos_{cap_str}_{model_name}.pt")
+                torch.save(neg_tensor, act_dir / f"neg_{cap_str}_{model_name}.pt")
+                logger.info("  Saved activations: pos=%s, neg=%s", pos_tensor.shape, neg_tensor.shape)
+
+            # Compute split-half reliability at this cap level
+            if pos_activations and neg_activations:
 
                 reliability = split_half_reliability(pos_tensor, neg_tensor, n_splits=100)
 
@@ -281,9 +293,13 @@ def main():
     # Upload to S3
     import subprocess, os
     if os.environ.get("AWS_ACCESS_KEY_ID"):
+        s3_base = f"s3://go37-ai/self-model-results/{model_name}/capping_v2"
         for fpath in [responses_path, results_path]:
-            s3_path = f"s3://go37-ai/self-model-results/{model_name}/capping_v2/{fpath.name}"
-            subprocess.run(["aws", "s3", "cp", str(fpath), s3_path])
+            subprocess.run(["aws", "s3", "cp", str(fpath), f"{s3_base}/{fpath.name}"])
+        # Upload activations
+        act_dir = args.output_dir / "activations"
+        if act_dir.exists():
+            subprocess.run(["aws", "s3", "sync", str(act_dir), f"{s3_base}/activations/"])
         logger.info("Uploaded to S3")
 
     # Shutdown pod
