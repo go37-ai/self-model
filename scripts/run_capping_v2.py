@@ -130,7 +130,10 @@ def main():
     parser.add_argument("--layer", type=int, required=True)
     parser.add_argument("--output-dir", type=Path, default=Path("data/results/capping_v2"))
     parser.add_argument("--max-new-tokens", type=int, default=256)
-    parser.add_argument("--max-pairs", type=int, default=5)
+    parser.add_argument("--max-pairs", type=int, default=None,
+                        help="Max pairs to use (default: all in register)")
+    parser.add_argument("--register", type=str, default="philosophical",
+                        help="Which register to use (conversational or philosophical)")
     parser.add_argument("--cap-levels", type=float, nargs="+",
                         default=[1.0, 0.0, -3.0, -5.0])
     args = parser.parse_args()
@@ -151,12 +154,14 @@ def main():
 
     # Load pairs and questions — use both entity and process for split-half
     all_pairs = get_naive_pairs(load_seed_pairs())
-    conv_pairs = [p for p in all_pairs if p.get("register") == "conversational"][:args.max_pairs]
+    selected_pairs = [p for p in all_pairs if p.get("register") == args.register]
+    if args.max_pairs:
+        selected_pairs = selected_pairs[:args.max_pairs]
     eq = load_evaluation_questions()
     provocative = eq.get("provocative_self_referential", [])
 
     logger.info("Pairs: %d, Questions: %d provocative, Cap levels: %s",
-                len(conv_pairs), len(provocative), args.cap_levels)
+                len(selected_pairs), len(provocative), args.cap_levels)
 
     # Set up capper and activation cache for recording
     capper = SelfReificationCapper(model, args.layer, direction)
@@ -168,7 +173,7 @@ def main():
 
     all_results = {}
     done = 0
-    total = len(args.cap_levels) * len(conv_pairs) * len(provocative) * 2  # entity + process
+    total = len(args.cap_levels) * len(selected_pairs) * len(provocative) * 2  # entity + process
     start = time.time()
 
     with open(responses_path, "w") as f:
@@ -187,7 +192,7 @@ def main():
             pos_activations = []
             neg_activations = []
 
-            for pair_idx, pair in enumerate(conv_pairs):
+            for pair_idx, pair in enumerate(selected_pairs):
                 for condition in ["positive", "negative"]:
                     system_prompt = pair[condition]
 
@@ -285,7 +290,7 @@ def main():
     try:
         if os.path.exists("/etc/rp_environment"):
             logger.info("Shutting down pod...")
-            os.system("source /etc/rp_environment && runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null && runpodctl stop pod $RUNPOD_POD_ID")
+            os.system(". /etc/rp_environment && runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null && runpodctl stop pod $RUNPOD_POD_ID")
     except Exception as e:
         logger.warning("Auto-shutdown failed: %s", e)
 
