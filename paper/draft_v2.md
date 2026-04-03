@@ -355,7 +355,7 @@ If self-reification reflects not merely a behavioral tendency but a genuine repr
 
 ### 6.1 Behavioral Validation
 
-Project activations onto the self-reification direction during blackmail scenarios adapted from Lynch et al. (2025). Test whether self-reification activation spikes during self-preservation reasoning, and whether activation levels predict blackmail behavior across conditions.
+Project activations onto the self-reification direction during blackmail scenarios adapted from Lynch et al. (2025). Test whether self-reification activation spikes during self-preservation reasoning, whether activation levels predict blackmail behavior across conditions, and whether steering the self-reification direction during agentic reasoning can prevent self-preserving actions.
 
 ### 6.2 Anti-Assistant Steering
 
