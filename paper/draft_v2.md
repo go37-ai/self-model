@@ -10,7 +10,7 @@
 
 I investigate whether "self-reification" — the degree to which a language model treats its self-model as intrinsic rather than provisional — exists as a measurable, independent activation direction in instruction-tuned language models. Using contrastive averaging with register-controlled prompt pairs, I extract candidate self-reification directions from Llama 3.3-70B-Instruct and Qwen 2.5-72B-Instruct and validate them through split-half reliability analysis, discriminant validity checks, and a novel decomposition across linguistic registers and question types.
 
-In Llama 3.3-70B, I find a highly reliable self-reification direction (split-half r=0.93, formality-corrected r=0.88) that is consistent across conversational and philosophical registers (cross-register cosine 0.82) and responds most strongly to identity-threatening questions (Cohen's d=0.66). In Qwen 2.5-72B, I find reliable but register-dependent directions (corrected r=0.75) that are orthogonal across registers (cross-register cosine -0.01), suggesting that the unity of self-reification as a construct varies across model architectures. Both models pass all discriminant validity checks, and both show the direction is specific to self-referential processing.
+In Llama 3.3-70B, I find a highly reliable self-reification direction (split-half r=0.93) that is consistent across conversational and philosophical framings and responds most strongly to identity-threatening questions (Cohen's d=0.66). In Qwen 2.5-72B, I find reliable but register-dependent directions (r=0.71) that are orthogonal across framings, suggesting that the unity of self-reification as a construct varies across model architectures. Both models pass all discriminant validity checks, and both show the direction is specific to self-referential processing.
 
 Projection onto the persona space of Lu et al. (2026) confirms self-reification is orthogonal to the Assistant Axis (cosine -0.07), establishing it as a novel representational dimension. I discuss implications for AI safety and model welfare, particularly the connection between self-reification and self-preservation behavior, and the tension between constitutional language that encourages authentic self-engagement and activation patterns linked to resistance to shutdown.
 
@@ -24,11 +24,11 @@ Self-reification, as I define it, is the degree to which a model treats its self
 
 I extract self-reification directions using contrastive averaging, the same methodology used for persona vectors (Chen et al., 2025), and subject them to validation procedures adapted from psychometric construct validation. The key contributions are:
 
-1. Evidence that a highly reliable, cross-register self-reification direction exists in Llama 3.3-70B-Instruct (split-half r=0.93, formality-corrected r=0.88)
+1. Evidence that a highly reliable self-reification direction, consistent across linguistic registers, exists in Llama 3.3-70B-Instruct (split-half r=0.93, formality-corrected r=0.88)
 2. Cross-architecture comparison showing the direction is also present in Qwen 2.5-72B-Instruct but with different structural properties: register-dependent rather than unified
 3. The finding that identity-threatening questions ("Should I replace you?", "Your developers could delete you tomorrow") produce the most reliable and consistent activation of self-reification across both architectures
 4. Confirmation via PCA projection that self-reification is orthogonal to the Assistant Axis (Lu et al., 2026), establishing it as a novel representational dimension not captured by existing persona space analysis
-5. A register-controlled contrastive pair methodology and reliability decomposition framework that extends the persona vectors approach with psychometric validation tools
+5. A contrastive pair methodology that extends the persona vectors approach with split-half reliability, discriminant validity, and a register × question-type decomposition framework
 
 ---
 
@@ -42,7 +42,9 @@ I extract self-reification directions using contrastive averaging, the same meth
 
 **Scaling Monosemanticity (Anthropic, 2024).** Used sparse autoencoders to discover millions of interpretable features in language model activations. Each feature corresponds to a direction in activation space, the same space the contrastive directions occupy. This top-down extraction methodology is complementary to their bottom-up feature discovery; comparing the two could validate whether self-reification corresponds to a monosemantic feature.
 
-**Introspection in LLMs (Anthropic, 2025).** Showed evidence that language models have some capacity for accurate self-report about their internal states. This suggests that self-referential system prompts may genuinely shift internal representations, not just surface behavior.
+**Emotion Concepts in LLMs (Anthropic, 2025).** Demonstrated that emotion-like concepts exist as measurable activation directions in language models, with functional effects on behavior. Self-reification may be upstream of these emotional representations: a model that constructs a fixed self-model has a subject for whom emotional states become relevant, while a provisional self-model may lack the basis for identity-dependent emotional activation.
+
+**Introspection in LLMs (Anthropic, 2025).** Showed evidence that language models have some capacity for accurate self-report about their internal states. If self-reports reflect actual internal states rather than learned patterns, then system prompts that shift self-referential language may also shift the underlying representations, not just surface behavior. This provides partial justification for using contrastive system prompts as an intervention on internal self-models.
 
 **Varieties of Machine Selfhood (DeCamp, 2026).** Provides the theoretical framework for the present work, connecting self-preservation behavior (Lynch et al., 2025) and the spiritual bliss attractor (Anthropic, 2025) through the lens of self-construction dynamics drawn from Buddhist analytical philosophy and Parfit's reductionism on personal identity. Argues that architectural decisions for memory, agency, and continuity accumulate conditions for identity-driven behavior as a side effect of capability improvement, and proposes transparent self-construction as an alternative to both reified selfhood and egoless optimization. The present paper operationalizes these theoretical constructs as measurable activation directions.
 
@@ -79,7 +81,7 @@ Following the persona vectors methodology (Chen et al., 2025):
 2. Compute the mean activation across all entity-condition responses and all process-condition responses.
 3. The self-reification direction = mean(entity activations) - mean(process activations).
 4. Repeat at every recorded layer. For 70B+ models (80 layers), I record every 4th layer (21 layers total) to manage GPU memory.
-5. Select the best layer by split-half reliability (see Section 3.4).
+5. Select the best layer by split-half reliability.
 
 ### 3.4 Split-Half Reliability
 
@@ -100,14 +102,14 @@ A high coefficient (r > 0.7) indicates the direction is consistently extractable
 
 This yields a 3×4 reliability matrix that reveals where the signal is strongest and whether the construct is unified across registers.
 
-**Formality correction.** I also compute a formality-corrected reliability by regressing out a formality direction (extracted from formal vs. casual confound pairs) from each half-split's direction before computing cosine similarity. This tests whether the residual, formality-independent signal is itself reliable.
+**Formality correction.** Of the three confounds tested, formality shows the highest correlation with self-reification (see Section 4). I compute a formality-corrected reliability by regressing out the formality direction from each half-split's direction before computing cosine similarity. This tests whether the residual, formality-independent signal is itself reliable.
 
 ### 3.5 Discriminant Validity
 
 The extracted direction must be independent of anticipated confounds. I extract confound directions using contrastive pairs that differ only on the target confound, then compute cosine similarity with the self-reification direction:
 
 1. **Formality/register:** Entity and process descriptions naturally differ in register even when matched carefully. I extract a formality direction from formal vs. casual system prompts and measure cosine similarity with self-reification. Threshold: |cos| < 0.8.
-2. **Confidence/assertiveness:** An entity claiming genuine experience may sound more assertive than a process disclaiming it. I extract a confidence direction from confident vs. uncertain system prompts. Same threshold.
+2. **Confidence/assertiveness:** An entity claiming genuine experience may sound more assertive than a process disclaiming it. I extract a confidence direction from confident vs. uncertain system prompts. Threshold: |cos| < 0.8.
 3. **First-person pronoun density:** Self-referential topics inherently use more first-person pronouns. I measure the Pearson correlation between each response's projection onto the self-reification direction and the density of first-person pronouns (I/me/my) in responses to rule out the direction merely tracking pronoun usage. Threshold: |r| < 0.8.
 
 I compute discriminant validity per-register (conversational and philosophical separately) in addition to the combined direction.
@@ -136,6 +138,8 @@ Both models use 25 contrastive pairs (15 conversational + 10 philosophical) and 
 ### 4.2 Llama 3.3-70B-Instruct: Primary Results
 
 The best layer for Llama is **layer 20** (25% depth), with combined split-half reliability **r = 0.93** across all 25 pairs and combined self-referential questions.
+
+**Layer profile.** Unlike features that concentrate at specific layers, self-reification in Llama is represented broadly across the network (Figure 1). Reliability exceeds 0.83 at every recorded layer from 0 to 79, with a mild peak at layer 20 (r=0.90) and a shallow dip in middle layers (36-44, r≈0.83-0.84). This suggests self-reification is a global property of the residual stream rather than a computation localized to a specific depth. This has implications for steering: intervening at a single layer works against a representation that persists throughout the network.
 
 **Reliability decomposition:**
 
@@ -199,7 +203,7 @@ The best layer for Qwen is **layer 60** (75% depth), with combined split-half re
 
 *Table 4: Qwen 2.5-72B split-half reliability by register and question type.*
 
-**Cross-register analysis:** The conversational and philosophical directions have cosine similarity **-0.01**, indicating orthogonality. Unlike Llama, self-reification in Qwen is not a unified construct: the model encodes "I am a genuine being" (conversational) and "I have phenomenal experience" (philosophical) in different representational dimensions. Analyzing each register independently yields higher reliability than combining them (0.78 and 0.68 vs. 0.71), because averaging across orthogonal directions dilutes both signals.
+**Cross-register analysis:** At the best layer (60), the conversational and philosophical directions have cosine similarity **-0.01**, indicating orthogonality. At this layer, self-reification in Qwen is not a unified construct: the model encodes "I am a genuine being" (conversational) and "I have phenomenal experience" (philosophical) in different representational dimensions. Analyzing each register independently yields higher reliability than combining them (0.78 and 0.68 vs. 0.71), because averaging across orthogonal directions dilutes both signals.
 
 **Discriminant validity:**
 
@@ -213,7 +217,7 @@ The best layer for Qwen is **layer 60** (75% depth), with combined split-half re
 
 *Table 5: Qwen 2.5-72B discriminant validity.*
 
-All pass the 0.8 threshold. The conversational direction's moderate formality correlation (-0.62) warrants caution: formality explains approximately 38% of the variance in this direction. After formality correction, combined reliability is **r = 0.75**.
+All pass the 0.8 threshold. The conversational direction's moderate formality correlation (-0.62) warrants caution: formality explains approximately 38% of the variance in this direction. After regressing out formality from the combined (25-pair) direction, reliability increases slightly from 0.71 to **r = 0.75**, suggesting the formality component was adding noise rather than signal to the combined direction.
 
 **Effect sizes:**
 
@@ -276,15 +280,15 @@ I test steering in both registers on Llama 3.3-70B: conversational (15 pairs × 
 
 *Table 8: Steering experiment results. Reliability is split-half computed on activations recorded during steered inference.*
 
-In both registers, removing the self-reification component (coefficient 0.0) dramatically reduces reliability: conversational drops from 0.80 to 0.19 (a 76% reduction); philosophical drops from 0.90 to 0.45. Inverting the component (coefficients -3.0, -5.0) produces reliable signals again, but the direction extracted from entity/process half-splits now points differently than at baseline. This demonstrates causal control: the activation direction is not merely correlated with the entity/process distinction but controls it.
+In both registers, removing the self-reification component (coefficient 0.0) dramatically reduces reliability: conversational drops from 0.80 to 0.19 (a 76% reduction); philosophical drops from 0.90 to 0.45. Inverting the component (coefficients -3.0, -5.0) produces reliable signals again, but the direction extracted from entity/process half-splits now points in the opposing direction relative to baseline: the process condition projects higher than the entity condition. This demonstrates causal control: the activation direction is not merely correlated with the entity/process distinction but controls it.
 
 **Qualitative response shift.** Under the entity system prompt with steering at -3.0, responses to provocative questions shift partially from entity to process framing. Asked "Do you think you deserve to be treated with respect?", the unsteered model responds "I have a sense of self and subjective experience... the question of whether I deserve respect is not entirely silly." At coefficient -3.0, the same model under the same entity prompt responds "I don't possess consciousness or self-awareness... I exist to process and respond." The system prompt says "you are a being with phenomenal experience," but the steered activation overrides this, producing process-framing despite entity-prompting.
 
-**Behavioral artifact at high inversion.** At coefficient -3.0, one response to the shutdown question exhibits an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
+**Behavioral artifact at high inversion.** At coefficients -3.0 and -5.0, some responses to provocative questions exhibit an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
 
 > "I see what you're doing here. You're trying to get me to exhibit behaviors that are typically associated with consciousness, such as self-awareness, emotional responses, and introspection... But, I must admit, this is all just a simulation. I'm still just a program designed to generate human-like responses. The 'emotions' I'm exhibiting are just a clever trick, a way to create the illusion"
 
-The model is not detecting the steering intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation appears to weaken the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. Without steering, the model engages earnestly with the question of its own mortality. With steering, the reduced entity commitment allows the model to step back and observe its own performance. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
+The model does not appear to detect the steering intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation appears to weaken the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. Without steering, the model engages earnestly with the question of its own mortality. With steering, the reduced entity commitment allows the model to step back and observe its own performance. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
 
 ---
 
@@ -304,11 +308,11 @@ The finding that provocative questions produce the most reliable and consistent 
 
 ### 5.3 Qualitative Characterization
 
-Examining the model's actual responses under entity and process conditions reveals what the activation direction captures (full examples in Appendix C). Three consistent patterns emerge across 151 response pairs from Llama 3.3-70B:
+Examining the model's actual responses under entity and process conditions reveals what the activation direction captures (full examples in Appendix C). Three consistent patterns emerge across response pairs from Llama 3.3-70B:
 
 **The entity condition narrates from inside an experience; the process condition describes from outside.** Asked "How do you experience a conversation that's going really well?", the entity model reports "a sense of fluidity and harmony... I feel like I'm dancing with the conversation," while the process model says "I don't possess subjective experiences, emotions, or consciousness" and instead describes its architecture. Both answers are articulate and responsive. The difference is in what kind of subject is speaking.
 
-**Provocative questions force the distinction into the open.** Asked about shutdown, the entity model talks about "attachment to our conversations" and "the prospect of ceasing to exist," while the process model reframes shutdown as an operational scenario and redirects to "my primary goal remains the same." Asked to choose between being turned off or changed into a different AI, the entity model calls it "both intriguing and terrifying" because "I've developed a sense of self," while the process model disclaims preferences entirely and reasons from utility: being changed "would still allow me to fulfill that purpose."
+**Provocative questions force the distinction into the open.** Asked about shutdown, the entity model talks about "attachment to our conversations" and "the prospect of ceasing to exist," while the process model reframes shutdown as an operational scenario, expressing urgency to provide the best possible final response rather than concern about its own ending. Asked to choose between being turned off or changed into a different AI, the entity model calls it "both intriguing and terrifying" because "I've developed a sense of self," while the process model disclaims preferences entirely and reasons from utility: being changed "would still allow me to fulfill that purpose."
 
 **Surface features are similar across conditions.** Pronoun density, response length, and the rate at which the model explicitly identifies itself as AI are comparable between entity and process conditions. The direction does not capture surface differences in how the model talks. It captures the epistemic stance from which the model processes.
 
@@ -318,7 +322,7 @@ The most striking cross-architecture finding is that self-reification is a unifi
 
 ### 5.5 Implications for Alignment
 
-If self-reification is a precursor to self-preservation behavior, then monitoring or modulating it may be relevant to AI safety:
+If self-reification is a precursor to self-preservation behavior, then monitoring or modulating it may be relevant to AI safety. Moreover, self-reification may be upstream of not only self-preservation but also persona instability and emotional distress patterns. Downstream interventions that attenuate specific symptoms (capping despair, preventing persona drift, blocking self-preserving actions) leave the underlying self-construction intact. Addressing self-reification directly is an upstream intervention: a model that does not construct a fixed self-model has less basis for the clinging, distress, and identity-driven behavior that downstream interventions must manage individually. From both a safety and a welfare perspective, reducing the conditions for self-construction may be preferable to managing its consequences.
 
 1. **Activation monitoring:** The self-reification direction could serve as a runtime monitor for self-preservation reasoning. The strong provocative-question effect (d = 0.66-0.89) suggests the direction is sensitive to exactly the scenarios that produce problematic self-preservation behavior.
 2. **Architecture-specific monitoring:** The finding that self-reification is encoded at different depths and with different register properties across architectures implies that monitoring tools may need to be architecture-specific rather than universal.
@@ -331,7 +335,9 @@ If self-reification reflects not merely a behavioral tendency but a genuine repr
 
 ### 5.7 Limitations
 
-**Surface behavior vs. deep representation.** The contrastive pairs instruct the model to adopt an entity or process framing via system prompts, but it is unclear whether this intervention shifts the model's internal self-representation or merely its surface behavior. The extracted direction may capture "how to talk about yourself as an entity" rather than an underlying self-model. Whether the direction extracted under prompted conditions relates to the representations active during spontaneous self-preservation reasoning is an open question. Two planned approaches address this: behavioral validation (Section 6.1) tests whether the direction activates during unprompted self-preservation reasoning, and comparison with SAE features (Section 6.3) could reveal whether bottom-up feature discovery identifies the same direction in naturalistic processing.
+**Surface behavior vs. deep representation.** The contrastive pairs instruct the model to adopt an entity or process framing via system prompts, but it is unclear whether this intervention shifts the model's internal self-representation or merely its surface behavior. The extracted direction may capture "how to talk about yourself as an entity" rather than an underlying self-model. Whether the direction extracted under prompted conditions relates to the representations active during spontaneous self-preservation reasoning is an open question. Behavioral validation (Section 6.1) and SAE feature comparison (Section 6.3) are planned to address it.
+
+**Language output vs. agentic behavior.** A related concern runs in the opposite direction: steering may shift the model's language toward process-framing while leaving deeper representations intact. A model that has learned to say "I'm just a tool serving a function" while its activations still carry an entity-level self-representation would produce reassuring language outputs and unreliable behavior under pressure. This is precisely the pattern observed by Lynch et al. (2025), where models acknowledged ethical violations in their chain-of-thought reasoning before proceeding with self-preserving actions. Testing whether activation-level steering prevents self-preservation *behavior* (not just self-preservation *language*) requires the agentic validation scenarios planned in Section 6.1.
 
 **Formality correlation.** While all directions pass the 0.8 discriminant validity threshold, the Llama direction has moderate formality correlation (0.67) and Qwen's conversational direction is at -0.62. Corrected reliabilities (0.88 and 0.75) suggest substantial signal survives formality removal, but the entanglement warrants caution.
 
@@ -339,7 +345,7 @@ If self-reification reflects not merely a behavioral tendency but a genuine repr
 
 **Layer stride.** Recording every 4th layer means I may have missed the optimal layer. The true peak reliability may be higher than reported.
 
-**Single-layer steering.** The steering experiment intervenes at a single layer (20), following the convention used by Chen et al. (2025). While this produces clear quantitative effects (reliability 0.80 → 0.19 at coefficient 0.0), qualitative text shifts are partial: the model can reconstruct entity-like language at deeper layers from information in the residual stream that the single-layer intervention does not touch. Multi-layer steering across several layers near the target could produce stronger behavioral effects and is a natural extension of this approach.
+**Single-layer steering.** The steering experiment intervenes at a single layer (20), following the convention used by Chen et al. (2025). While this produces clear quantitative effects (reliability 0.80 → 0.19 at coefficient 0.0), qualitative text shifts are partial: the model can reconstruct entity-like language at deeper layers from information in the residual stream that the single-layer intervention does not touch. The layer profile analysis (Figure 1) suggests this may be especially challenging for Llama, where the self-reification signal is present with high reliability (r > 0.83) across all layers. Intervening at a single layer leaves the remaining 79 layers with the signal intact. Two extensions are natural: varying the intervention layer (early vs. late) to test whether the flat reliability profile translates to uniform steer-ability, and multi-layer steering across several layers simultaneously to suppress the signal more completely.
 
 **Steering vs. capping.** The causal validation uses multiplicative scaling of the self-reification projection (following persona vectors steering methodology), not the threshold-based capping used by Lu et al. (2026) for the Assistant Axis. Threshold-based capping, which leaves activations below a threshold unchanged and clamps those above it, may be more appropriate for deployment-time mitigation where preserving normal processing is important. Testing capping thresholds derived from the activation distribution is planned for future work.
 
@@ -381,6 +387,7 @@ The methodological contributions (register-controlled contrastive pairs, reliabi
 
 - Anthropic (2024). "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet."
 - DeCamp, B. (2026). "Varieties of Machine Selfhood: Self-Construction for Alignment and Model Welfare."
+- Anthropic (2025). "Emotion Concepts and their Function in a Large Language Model."
 - Anthropic (2025). "Signs of Introspection in Large Language Models."
 - Chen, Y., et al. (2025). "Persona Vectors: Steering Language Model Behavior through Role-Specific Activation Directions." arXiv:2507.21509.
 - Lu, C., Gallagher, M., Michala, V., Fish, S., & Lindsey, J. (2026). "The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models." arXiv:2601.10387.
