@@ -297,12 +297,11 @@ def main():
         subprocess.run(["aws", "s3", "cp", "/workspace/run.log", f"{s3_base}/run.log"])
         logger.info("Uploaded to S3")
 
-    # Shutdown pod
+    # Shutdown pod — assumes runpodctl was pre-configured in the launch command
     try:
-        if os.path.exists("/etc/rp_environment"):
-            logger.info("Shutting down pod...")
-            os.system("mkdir -p /root/.runpod && touch /root/.runpod/config.toml")
-            os.system(". /etc/rp_environment && runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null && runpodctl stop pod $RUNPOD_POD_ID")
+        logger.info("Shutting down pod...")
+        # Get pod ID from environment
+        os.system(". /etc/rp_environment 2>/dev/null && runpodctl stop pod $RUNPOD_POD_ID 2>&1")
     except Exception as e:
         logger.warning("Auto-shutdown failed: %s", e)
 
