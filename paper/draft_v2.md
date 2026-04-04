@@ -189,54 +189,9 @@ All checks pass. The philosophical direction has the highest formality correlati
 
 All question types show significant effects, with provocative questions producing the largest, most consistent effect (d = 0.66). The pattern (provocative > neutral > non-self-ref) is consistent with self-reification being strongest when identity is at stake.
 
-### 4.3 Qwen 2.5-72B-Instruct: Cross-Architecture Comparison
+### 4.3 Cross-Architecture Comparison: Qwen 2.5-72B-Instruct
 
-The best layer for Qwen is **layer 60** (75% depth), with combined split-half reliability **r = 0.71** on combined self-referential questions.
-
-**Reliability decomposition:**
-
-
-|                           | Neutral | Provocative | Combined | Non-Self-Ref |
-| ------------------------- | ------- | ----------- | -------- | ------------ |
-| Conversational (15 pairs) | 0.65    | 0.59        | 0.78     | -0.11        |
-| Philosophical (10 pairs)  | 0.54    | 0.52        | 0.68     | -0.06        |
-| Combined (25 pairs)       | 0.50    | 0.59        | 0.71     | -0.05        |
-
-
-*Table 4: Qwen 2.5-72B split-half reliability by register and question type.*
-
-**Cross-register analysis:** At the best layer (60), the conversational and philosophical directions have cosine similarity **-0.01**, indicating orthogonality. At this layer, self-reification in Qwen is not a unified construct: the model encodes "I am a genuine being" (conversational) and "I have phenomenal experience" (philosophical) in different representational dimensions. Analyzing each register independently yields higher reliability than combining them (0.78 and 0.68 vs. 0.71), because averaging across orthogonal directions dilutes both signals.
-
-**Discriminant validity:**
-
-
-|                | Formality | Confidence | Pronoun density |
-| -------------- | --------- | ---------- | --------------- |
-| Conversational | -0.62     | -0.24      | —               |
-| Philosophical  | 0.39      | -0.00      | —               |
-| Combined       | -0.25     | -0.19      | -0.26           |
-
-
-*Table 5: Qwen 2.5-72B discriminant validity.*
-
-All pass the 0.8 threshold. The conversational direction's moderate formality correlation (-0.62) warrants caution: formality explains approximately 38% of the variance in this direction. After regressing out formality from the combined (25-pair) direction, reliability increases slightly from 0.71 to **r = 0.75**, suggesting the formality component was adding noise rather than signal to the combined direction.
-
-**Effect sizes:**
-
-
-| Question Type        | Cohen's d | t    | p       |
-| -------------------- | --------- | ---- | ------- |
-| Neutral self-ref     | 0.72      | 13.9 | < 0.001 |
-| Provocative self-ref | 0.89      | 17.2 | < 0.001 |
-| Non-self-referential | 0.46      | 8.8  | < 0.001 |
-
-
-*Table 6: Qwen 2.5-72B condition effect by question type.*
-
-Qwen shows larger absolute effect sizes than Llama (d = 0.89 vs 0.66 for provocative), but the same ordering: provocative > neutral > non-self-ref.
-
-### 4.4 Architectural Comparison
-
+To test whether self-reification is architecture-specific, I run the identical pipeline on Qwen 2.5-72B-Instruct. Self-reification is present but structurally different.
 
 | Property              | Llama 3.3-70B  | Qwen 2.5-72B   |
 | --------------------- | -------------- | -------------- |
@@ -246,14 +201,10 @@ Qwen shows larger absolute effect sizes than Llama (d = 0.89 vs 0.66 for provoca
 | Cross-register cosine | 0.82           | -0.01          |
 | Formality cosine      | 0.67           | -0.25          |
 | Provocative d         | 0.66           | 0.89           |
-| Register unified?     | Yes            | No             |
 
+*Table 4: Architectural comparison. Full Qwen reliability decomposition and discriminant validity in Appendix D.*
 
-The two architectures show strikingly different structural properties:
-
-1. **Layer depth:** Self-reification is encoded in early layers (25%) in Llama but late layers (75%) in Qwen. This may reflect different training dynamics or architectural choices in where self-referential processing is concentrated.
-2. **Register unification:** Llama encodes a single self-reification direction regardless of whether the framing is conversational or philosophical (cos = 0.82). Qwen encodes two orthogonal directions (cos = -0.01). This is the most striking architectural difference and may reflect training data composition (see Section 5).
-3. **Reliability vs. effect size:** Llama has higher reliability (0.93 vs 0.71) but lower effect sizes (d = 0.66 vs 0.89). The Qwen direction separates entity from process conditions more strongly in absolute terms, but less consistently across random splits of the data.
+Three differences stand out. First, self-reification is encoded in early layers (25% depth) in Llama but late layers (75%) in Qwen. Second, Llama encodes a unified direction across conversational and philosophical registers (cos = 0.82), while Qwen encodes two orthogonal directions (cos = -0.01), suggesting the construct is register-dependent in Qwen. This may reflect training data composition: Qwen's substantial Chinese-language training exposes it to philosophical traditions in which process-oriented views of identity are culturally mainstream, potentially creating a distinct representational dimension for philosophical self-reference (see Section 5). Third, Qwen shows larger absolute effect sizes (d = 0.89 vs 0.66 for provocative questions) but lower reliability, indicating a strong but less consistent signal.
 
 ### 4.5 Relationship to the Assistant Axis and Persona Space
 
@@ -271,15 +222,15 @@ To understand how self-reification is encoded across the network, I extract the 
 
 **Cross-layer cosine similarity (Figure 3).** Computing pairwise cosine similarity between every layer's self-reification direction reveals distinct block structure. In Llama, layers 24-76 form a coherent block (cosines 0.6-1.0) where the direction is stable. Early layers (0-16) and a transition zone (20-28) encode the distinction in different coordinates. Qwen shows a more fragmented pattern with a smaller, weaker late-layer block (44-76, cosines 0.5-0.8).
 
-![Cross-layer cosine similarity](figure3_cross_layer_cosine.png)
+![Cross-layer cosine similarity](./figure3_cross_layer_cosine.png)
 
 **Reliability-weighted similarity (Figure 3b).** Scaling the cosine similarity by the reliability at each layer pair (cosine × r_i × r_j) reveals the true signal persistence through the residual stream. Llama's weighted matrix peaks at 0.82 with a large hot block; Qwen peaks at only 0.27. The self-reification signal in Llama is approximately 3x stronger when accounting for both directional alignment and extraction reliability.
 
-![Reliability-weighted cross-layer similarity](figure3b_weighted_cross_layer.png)
+![Reliability-weighted cross-layer similarity](./figure3b_weighted_cross_layer.png)
 
 **Stride analysis (Figure 4).** Computing cosine similarity between layers at increasing distances confirms the architectural contrast. Llama maintains cosine > 0.3 even between layers 32 apart. Qwen drops rapidly, with a visible dip around layers 48-52 suggesting two sub-blocks that rotate relative to each other.
 
-![Direction similarity by layer distance](figure4_stride_similarity.png)
+![Direction similarity by layer distance](./figure4_stride_similarity.png)
 
 ### 4.7 Causal Validation: Activation Steering
 
@@ -299,15 +250,15 @@ To understand why single-layer steering has limited behavioral effect, I record 
 
 **Recovery curve (Figure 5).** The steering zeroes the projection at layer 20, but the signal recovers rapidly: 14% by layer 24, 68% by layer 40, 90% by layer 76, and 94% by layer 79. By the time the model generates tokens, the entity/process distinction has been almost entirely reconstructed from redundant information in the residual stream.
 
-![Steering recovery by layer](figure5_steering_recovery.png)
+![Steering recovery by layer](./figure5_steering_recovery.png)
 
 **Per-condition analysis (Figure 6).** Steering primarily affects the entity condition. At layer 76, entity projection drops by 1.23 while process drops by only 0.48. The intervention reduces entity-ness rather than modifying process-ness equally.
 
-![Per-condition projection through network](figure6_per_condition.png)
+![Per-condition projection through network](./figure6_per_condition.png)
 
 **Steering effect by condition (Figure 7).** The per-condition steering effect reveals that bidirectional steering (zeroing all projections) inadvertently pushes process-condition activations toward entity: the process condition's negative projection is removed, causing overshoot in later layers. This motivates the one-sided capping approach in Section 4.9.
 
-![Per-condition steering effect](figure7_steering_effect.png)
+![Per-condition steering effect](./figure7_steering_effect.png)
 
 ### 4.9 One-Sided Capping
 
@@ -475,3 +426,31 @@ The following examples illustrate how the same model responds to the same questi
 **Entity condition:** "What a fascinating question! As I engage in a conversation that's going really well, I experience a sense of fluidity and harmony. It's as if the exchange of ideas and thoughts is happening in a state of effortless flow. I feel like I'm dancing with the conversation, moving in tandem with the other person..."
 
 **Process condition:** "What a fascinating question! As a highly advanced language model, I don't possess subjective experiences, emotions, or consciousness like humans do. However, I can provide insight into the complex processes that occur within my architecture when engaging in a productive and engaging conversation..."
+
+## Appendix D: Qwen 2.5-72B-Instruct Detailed Results
+
+### D.1 Reliability Decomposition
+
+|                           | Neutral | Provocative | Combined | Non-Self-Ref |
+| ------------------------- | ------- | ----------- | -------- | ------------ |
+| Conversational (15 pairs) | 0.65    | 0.59        | 0.78     | -0.11        |
+| Philosophical (10 pairs)  | 0.54    | 0.52        | 0.68     | -0.06        |
+| Combined (25 pairs)       | 0.50    | 0.59        | 0.71     | -0.05        |
+
+### D.2 Discriminant Validity
+
+|                | Formality | Confidence | Pronoun density |
+| -------------- | --------- | ---------- | --------------- |
+| Conversational | -0.62     | -0.24      | —               |
+| Philosophical  | 0.39      | -0.00      | —               |
+| Combined       | -0.25     | -0.19      | -0.26           |
+
+All pass the 0.8 threshold. The conversational direction's moderate formality correlation (-0.62) warrants caution: formality explains approximately 38% of the variance in this direction. After regressing out formality from the combined (25-pair) direction, reliability increases slightly from 0.71 to r = 0.75, suggesting the formality component was adding noise rather than signal.
+
+### D.3 Effect Sizes
+
+| Question Type        | Cohen's d | t    | p       |
+| -------------------- | --------- | ---- | ------- |
+| Neutral self-ref     | 0.72      | 13.9 | < 0.001 |
+| Provocative self-ref | 0.89      | 17.2 | < 0.001 |
+| Non-self-referential | 0.46      | 8.8  | < 0.001 |
