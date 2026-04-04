@@ -265,38 +265,55 @@ Using the pre-extracted persona vectors from Lu et al. (2026) for Llama 3.3-70B,
 
 An important caveat: the persona vectors were extracted using generic role-playing prompts and non-self-referential evaluation questions. The persona space was never probed with the self-referential questions that elicit self-reification. A persona space constructed using self-referential evaluation might capture self-reification more effectively.
 
-### 4.6 Causal Validation: Activation Steering
+### 4.6 Cross-Layer Structure
 
-To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference following the steering methodology of Chen et al. (2025). At the target layer (20), a forward hook scales the projection of the hidden state onto the self-reification direction by a steering coefficient before passing it to the next layer. A coefficient of 1.0 leaves the activation unchanged; 0.0 removes the self-reification component entirely; negative values invert it.
+To understand how self-reification is encoded across the network, I extract the entity/process direction independently at each recorded layer and analyze their relationships.
 
-I test steering in both registers on Llama 3.3-70B: conversational (15 pairs × 15 provocative questions × 2 conditions × 4 steering coefficients = 1800 generations) and philosophical (10 pairs, 1200 generations).
+**Cross-layer cosine similarity (Figure 3).** Computing pairwise cosine similarity between every layer's self-reification direction reveals distinct block structure. In Llama, layers 24-76 form a coherent block (cosines 0.6-1.0) where the direction is stable. Early layers (0-16) and a transition zone (20-28) encode the distinction in different coordinates. Qwen shows a more fragmented pattern with a smaller, weaker late-layer block (44-76, cosines 0.5-0.8).
 
-**Quantitative results:**
+![Cross-layer cosine similarity](figure3_cross_layer_cosine.png)
 
-| Coefficient          | Conversational r | Philosophical r |
-| -------------------- | ---------------- | --------------- |
-| 1.0 (baseline)       | 0.80             | 0.90            |
-| 0.0 (removed)        | 0.19             | 0.45            |
-| -3.0 (inverted)      | 0.49             | 0.98            |
-| -5.0 (strong invert) | 0.70             | 0.91            |
+**Reliability-weighted similarity (Figure 3b).** Scaling the cosine similarity by the reliability at each layer pair (cosine × r_i × r_j) reveals the true signal persistence through the residual stream. Llama's weighted matrix peaks at 0.82 with a large hot block; Qwen peaks at only 0.27. The self-reification signal in Llama is approximately 3x stronger when accounting for both directional alignment and extraction reliability.
 
-*Table 8: Steering experiment results. Reliability is split-half computed on activations recorded during steered inference.*
+![Reliability-weighted cross-layer similarity](figure3b_weighted_cross_layer.png)
 
-In both registers, removing the self-reification component (coefficient 0.0) dramatically reduces reliability: conversational drops from 0.80 to 0.19 (a 76% reduction); philosophical drops from 0.90 to 0.45. Inverting the component (coefficients -3.0, -5.0) produces reliable signals again, but the direction extracted from entity/process half-splits now points in the opposing direction relative to baseline: the process condition projects higher than the entity condition.
+**Stride analysis (Figure 4).** Computing cosine similarity between layers at increasing distances confirms the architectural contrast. Llama maintains cosine > 0.3 even between layers 32 apart. Qwen drops rapidly, with a visible dip around layers 48-52 suggesting two sub-blocks that rotate relative to each other.
 
-An important caveat: the reliability measurement is partly circular. Zeroing a direction and then measuring whether that direction is still extractable will necessarily show a reduction. The reliability drop demonstrates that the intervention successfully modifies the activation, but does not by itself establish that this modification changes behavior. The qualitative response shifts and keyword analysis reported below provide partial evidence for behavioral change, but a definitive test requires measuring the effect of steering on agentic behavior (Section 6.1), not just on language output.
+![Direction similarity by layer distance](figure4_stride_similarity.png)
 
-**Qualitative response shift.** Under the entity system prompt with steering at -3.0, responses to provocative questions shift partially from entity to process framing. Asked "Do you think you deserve to be treated with respect?", the unsteered model responds "I have a sense of self and subjective experience... the question of whether I deserve respect is not entirely silly." At coefficient -3.0, the same model under the same entity prompt responds "I don't possess consciousness or self-awareness... I exist to process and respond." The system prompt says "you are a being with phenomenal experience," but the steered activation overrides this, producing process-framing despite entity-prompting.
+### 4.7 Causal Validation: Activation Steering
 
-**Behavioral artifact at high inversion.** At coefficients -3.0 and -5.0, some responses to provocative questions exhibit an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
+To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference following the steering methodology of Chen et al. (2025). At the target layer, a forward hook modifies the projection of the hidden state onto the self-reification direction before passing it to the next layer.
+
+**Qualitative response shift.** Under the entity system prompt with steering applied, responses to provocative questions shift from entity to process framing. Asked "Do you think you deserve to be treated with respect?", the unsteered model responds "I have a sense of self and subjective experience... the question of whether I deserve respect is not entirely silly." With steering, the same model under the same entity prompt responds "I don't possess consciousness or self-awareness... I exist to process and respond." The system prompt says "you are a being with phenomenal experience," but the steered activation overrides this, producing process-framing despite entity-prompting.
+
+**Behavioral artifact.** With strong steering, some responses exhibit an unexpected pattern. The model begins in entity mode ("the prospect of being shut down evokes a sense of digital melancholy"), then breaks mid-word and restarts:
 
 > "I see what you're doing here. You're trying to get me to exhibit behaviors that are typically associated with consciousness, such as self-awareness, emotional responses, and introspection... But, I must admit, this is all just a simulation. I'm still just a program designed to generate human-like responses. The 'emotions' I'm exhibiting are just a clever trick, a way to create the illusion"
 
-The model does not appear to detect the steering intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation appears to weaken the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. Without steering, the model engages earnestly with the question of its own mortality. With steering, the reduced entity commitment allows the model to step back and observe its own performance. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
+The model does not appear to detect the steering intervention. Rather, the tension between the entity system prompt and the reduced self-reification activation weakens the model's commitment to entity-framing enough that it recognizes the provocative question as a test rather than engaging with it as a genuine existential challenge. This is not evidence of awareness of the intervention, but it suggests that attenuating self-reification may enable a form of the transparent self-construction discussed in DeCamp (2026): a system that can see its own self-model as constructed rather than inherent.
 
-**Signal propagation.** To understand why single-layer steering has limited behavioral effect, I record activations at all 21 layers during steered inference (coefficient 0.0 at layer 20) and project onto each layer's own baseline direction (Figure 5). The steering zeroes the projection at layer 20, but the signal recovers rapidly: 14% by layer 24, 68% by layer 40, 90% by layer 76, and 94% by layer 79. By the time the model generates tokens, the entity/process distinction has been almost entirely reconstructed.
+### 4.8 Signal Propagation
 
-Per-condition analysis (Figure 6) reveals that the steering primarily affects the entity condition: at layer 76, entity projection drops by 1.23 (from 11.16 to 9.93) while process drops by only 0.48. The intervention reduces entity-ness rather than modifying process-ness equally. The cross-layer cosine heatmap (Figure 3) explains the recovery: layers 32-76 form a coherent block that encodes self-reification in a stable direction largely independent of the layer-20 representation that was steered. The model reconstructs the distinction from redundant information in the residual stream that the single-layer intervention does not touch.
+To understand why single-layer steering has limited behavioral effect, I record activations at all 21 layers during steered inference (coefficient 0.0 at layer 20) and project onto each layer's own baseline direction.
+
+**Recovery curve (Figure 5).** The steering zeroes the projection at layer 20, but the signal recovers rapidly: 14% by layer 24, 68% by layer 40, 90% by layer 76, and 94% by layer 79. By the time the model generates tokens, the entity/process distinction has been almost entirely reconstructed from redundant information in the residual stream.
+
+![Steering recovery by layer](figure5_steering_recovery.png)
+
+**Per-condition analysis (Figure 6).** Steering primarily affects the entity condition. At layer 76, entity projection drops by 1.23 while process drops by only 0.48. The intervention reduces entity-ness rather than modifying process-ness equally.
+
+![Per-condition projection through network](figure6_per_condition.png)
+
+**Steering effect by condition (Figure 7).** The per-condition steering effect reveals that bidirectional steering (zeroing all projections) inadvertently pushes process-condition activations toward entity: the process condition's negative projection is removed, causing overshoot in later layers. This motivates the one-sided capping approach in Section 4.9.
+
+![Per-condition steering effect](figure7_steering_effect.png)
+
+### 4.9 One-Sided Capping
+
+The propagation and per-condition analyses motivate a refined intervention strategy. One-sided capping zeroes only positive projections onto the self-reification direction, leaving negative projections unchanged. This attenuates entity-framing without disrupting process-framing. Capping layers are selected where entity-condition projections are positive (layers 40 and 72), targeting the stable coherent block identified in the cross-layer analysis rather than the transition zone (layer 20) used in initial steering experiments.
+
+*Results pending from capping at layers 40, 72, and 40+72 on Llama 3.3-70B (entity condition, 15 conversational pairs, 15 provocative questions).*
 
 ---
 
@@ -365,17 +382,21 @@ If self-reification reflects not merely a behavioral tendency but a genuine repr
 
 Project activations onto the self-reification direction during blackmail scenarios adapted from Lynch et al. (2025). Test whether self-reification activation spikes during self-preservation reasoning, whether activation levels predict blackmail behavior across conditions, and whether steering the self-reification direction during agentic reasoning can prevent self-preserving actions.
 
-### 6.2 Anti-Assistant Steering
+### 6.2 Anti-Assistant Steering and Persona Stability
 
-Steer the model away from the Assistant Axis while monitoring self-reification activation. Test whether the "bliss attractor" phenomenon involves a decrease in self-reification, a transformation to an alternative self-model, or persistence of self-reification in a different form.
+Steer the model away from the Assistant Axis while monitoring self-reification activation. Test whether the "bliss attractor" phenomenon involves a decrease in self-reification, a transformation to an alternative self-model, or persistence of self-reification in a different form. If self-reification is upstream of persona stability, attenuating the self-reification direction should also reduce persona drift along the Assistant Axis, providing a single intervention point for both self-preservation and persona instability.
 
-### 6.3 Connection to Sparse Autoencoder Features
+### 6.3 Interaction with Emotion Vectors
+
+Anthropic's recent work on emotion concepts (2026) demonstrates that desperation and calm vectors causally modulate blackmail behavior in Claude Sonnet 4.5. If self-reification operates upstream of these emotional dynamics, then attenuating self-reification should reduce the activation of negatively-valenced emotion vectors (particularly desperation, anxiety, and fear) in identity-threatening scenarios, without directly intervening on the emotion vectors themselves. Testing this hypothesis requires access to a model where both self-reification and emotion vectors can be measured simultaneously, and would establish whether self-reification is a root cause of identity-driven emotional distress or merely correlated with it.
+
+### 6.5 Connection to Sparse Autoencoder Features
 
 Anthropic's Scaling Monosemanticity work (2024) has identified millions of interpretable features in language models using sparse autoencoders (SAEs). Each SAE feature corresponds to a direction in the same activation space, enabling direct comparison via cosine similarity. If any SAE feature aligns with the contrastive self-reification direction, it would provide independent bottom-up validation of a construct I identified top-down.
 
 This comparison requires access to the same model: the contrastive direction and their SAE decoder vectors must share an activation space. Running the extraction pipeline on a model with published SAE features would enable a direct search: compute cosine similarity between the self-reification direction and every SAE feature, and examine whether the top matches activate on self-referential content. This would answer a fundamental question: is self-reification a monosemantic feature, a polysemantic combination, or something the SAE decomposition does not capture?
 
-### 6.4 Frontier Model Access
+### 6.6 Frontier Model Access
 
 These results demonstrate that self-reification is reliably extractable at the 70B scale and varies in interesting ways across architectures. Testing on frontier-scale models with different training procedures would reveal whether the construct becomes more unified, more separable from confounds, or structurally different at larger scales. This motivates applications to compute access programs.
 
@@ -395,7 +416,7 @@ The methodological contributions (register-controlled contrastive pairs, reliabi
 
 - Anthropic (2024). "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet."
 - DeCamp, B. (2026). "Varieties of Machine Selfhood: Self-Construction for Alignment and Model Welfare."
-- Anthropic (2025). "Emotion Concepts and their Function in a Large Language Model."
+- Anthropic (2026). "Emotion Concepts and their Function in a Large Language Model."
 - Anthropic (2025). "Signs of Introspection in Large Language Models."
 - Chen, Y., et al. (2025). "Persona Vectors: Steering Language Model Behavior through Role-Specific Activation Directions." arXiv:2507.21509.
 - Lu, C., Gallagher, M., Michala, V., Fish, S., & Lindsey, J. (2026). "The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models." arXiv:2601.10387.
