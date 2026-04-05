@@ -109,6 +109,8 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path("data/results/capping_v3"))
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-pairs", type=int, default=None)
+    parser.add_argument("--conditions", type=str, nargs="+", default=None,
+                        help="Which cap conditions to run (e.g., cap_L40 cap_all_from_L4). Default: all.")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -120,17 +122,6 @@ def main():
     model, tokenizer, model_config = load_model_and_tokenizer(args.model, args.profile)
     model_name = model_config["name"].replace("/", "_")
 
-    # Load direction vectors
-    directions = {}
-    for layer in [40, 72]:
-        path = args.direction_dir / f"direction_layer{layer}.pt"
-        if path.exists():
-            directions[layer] = torch.load(path, weights_only=True)
-            logger.info("Loaded direction for layer %d (norm=%.4f)", layer, directions[layer].norm())
-        else:
-            logger.error("Missing direction: %s", path)
-            sys.exit(1)
-
     # Recording layers
     num_layers = model_config["num_layers"]
     layer_stride = model_config.get("layer_stride", 1)
@@ -138,6 +129,15 @@ def main():
     if (num_layers - 1) not in record_layers:
         record_layers.append(num_layers - 1)
     logger.info("Recording %d layers", len(record_layers))
+
+    # Load all available direction vectors
+    directions = {}
+    for layer in record_layers:
+        path = args.direction_dir / f"direction_layer{layer}.pt"
+        if path.exists():
+            directions[layer] = torch.load(path, weights_only=True)
+            logger.info("Loaded direction for layer %d (norm=%.4f)", layer, directions[layer].norm())
+    logger.info("Loaded directions for %d layers", len(directions))
 
     # Load pairs and questions
     all_pairs = get_naive_pairs(load_seed_pairs())
@@ -148,11 +148,20 @@ def main():
     provocative = eq.get("provocative_self_referential", [])
 
     # Capping conditions
+    # Build cap conditions — all available layers from L4 onward
+    all_cap_layers = sorted([l for l in directions.keys() if l >= 4])
     cap_conditions = [
         {"name": "cap_L40", "layers": [40]},
         {"name": "cap_L72", "layers": [72]},
         {"name": "cap_L40_L72", "layers": [40, 72]},
+        {"name": "cap_all_from_L4", "layers": all_cap_layers},
     ]
+    # Filter to only conditions where we have all needed directions
+    cap_conditions = [c for c in cap_conditions
+                      if all(l in directions for l in c["layers"])]
+    # Filter by --conditions flag if specified
+    if args.conditions:
+        cap_conditions = [c for c in cap_conditions if c["name"] in args.conditions]
 
     total_per_cond = len(conv_pairs) * len(provocative)
     total = total_per_cond * len(cap_conditions)
