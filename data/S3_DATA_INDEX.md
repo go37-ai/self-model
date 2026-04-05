@@ -8,7 +8,7 @@ Last updated: 2026-04-04
 ## Qwen 2.5-7B-Instruct
 
 ### 2026-03-31_1127_naive
-- **Experiment:** Full extraction, naive pairs only (25 pairs: 15 conversational + 10 philosophical)
+- **Experiment:** Full extraction, entity/process pairs (25 pairs: 15 conversational + 10 philosophical, labeled "naive" in code)
 - **Questions:** 45 (15 neutral + 15 provocative + 15 non-self-ref)
 - **Pairs config:** v3 (register-controlled, longer prompts)
 - **Best layer:** 21
@@ -36,7 +36,7 @@ Last updated: 2026-04-04
 - **Vectors:** naive direction, confound directions
 
 ### 2026-03-31_1127_naive
-- **Experiment:** Full extraction, naive pairs only (25 pairs: 15 conversational + 10 philosophical)
+- **Experiment:** Full extraction, entity/process pairs (25 pairs: 15 conversational + 10 philosophical, labeled "naive" in code)
 - **Questions:** 45 (15 neutral + 15 provocative + 15 non-self-ref)
 - **Pairs config:** v3 (current)
 - **Best layer:** 49
@@ -65,7 +65,7 @@ Last updated: 2026-04-04
 - **Note:** S3 path is messy — contains data from multiple models/runs
 
 ### 2026-03-30_2243_naive
-- **Experiment:** Full extraction, naive pairs only (25 pairs: 15 conversational + 10 philosophical)
+- **Experiment:** Full extraction, entity/process pairs (25 pairs: 15 conversational + 10 philosophical, labeled "naive" in code)
 - **Questions:** 45 (15 neutral + 15 provocative + 15 non-self-ref)
 - **Pairs config:** v3 (current)
 - **Best layer:** 60
@@ -79,7 +79,7 @@ Last updated: 2026-04-04
 ## Llama 3.3-70B-Instruct
 
 ### 2026-03-31_1516_naive ★ PRIMARY RESULTS
-- **Experiment:** Full extraction, naive pairs only (25 pairs: 15 conversational + 10 philosophical)
+- **Experiment:** Full extraction, entity/process pairs (25 pairs: 15 conversational + 10 philosophical, labeled "naive" in code)
 - **Questions:** 45 (15 neutral + 15 provocative + 15 non-self-ref)
 - **Pairs config:** v3 (current)
 - **Best layer:** 20
@@ -117,6 +117,16 @@ Last updated: 2026-04-04
 - **Activations:** 21 layers × 2 conditions = 42 files (each 225 samples × 8192 dims)
 - **Metrics:** Per-layer projection difference (steered)
 - **Baseline comparison:** Use activations from 2026-03-31_1516_naive run
+
+### baseline_entity_conv_prov/ ★ MATCHED BASELINE
+- **Experiment:** Uncapped entity-only generation (accidental — capping script ran with 0 directions loaded)
+- **Content:** 15 conversational pairs × 15 provocative questions, entity condition only
+- **Activations:** All 21 layers (stride 4), 225 samples per layer
+- **Response texts:** responses_uncapped_entity.jsonl
+- **Use:** Matched no-intervention baseline for comparing against capping_v3 conditions.
+  Same pairs, questions, model, and generation settings as capped runs.
+- **Note:** Originally saved under capping_v3/activations/cap_all_from_L4/ (mislabeled).
+  Copied here with correct name.
 
 ---
 
