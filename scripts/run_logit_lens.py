@@ -36,6 +36,7 @@ def logit_lens(direction, lm_head_weight, tokenizer, top_k=30):
         dict with top_positive (entity-promoting) and top_negative (process-promoting) tokens
     """
     direction_norm = direction.float() / direction.float().norm()
+    direction_norm = direction_norm.to(lm_head_weight.device)
     # Project: (vocab_size, hidden_dim) @ (hidden_dim,) -> (vocab_size,)
     logits = lm_head_weight.float() @ direction_norm
 
