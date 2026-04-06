@@ -28,11 +28,17 @@ from utils.model_loader import load_model_and_tokenizer
 
 
 class OneSidedCapper:
-    """Hook that caps positive projections to zero at a target layer."""
+    """Hook that caps projections above a threshold at a target layer.
 
-    def __init__(self, model, layer_idx, direction):
+    Default threshold=0 caps positive projections to zero.
+    Negative threshold (e.g. -2) pushes projections into process territory
+    without full inversion.
+    """
+
+    def __init__(self, model, layer_idx, direction, threshold=0.0):
         self.direction = direction.float()
         self.direction_norm = self.direction / self.direction.norm()
+        self.threshold = threshold
         self.hook = None
         self.cap_log = []
         self.layer_idx = layer_idx
@@ -50,19 +56,19 @@ class OneSidedCapper:
 
         direction_dev = self.direction_norm.to(hidden.device)
         projection = torch.einsum('...d,d->...', hidden.float(), direction_dev)
-        positive_mask = projection > 0
+        above_mask = projection > self.threshold
 
         # Log last-token projection before capping
         last_proj = projection[0, -1].item()
 
-        if positive_mask.any():
+        if above_mask.any():
             capped = projection.clone()
-            capped[positive_mask] = 0.0
+            capped[above_mask] = self.threshold
             remove_amount = projection - capped
             hidden_modified = hidden.float() - remove_amount.unsqueeze(-1) * direction_dev
             hidden_modified = hidden_modified.to(hidden.dtype)
 
-            fired = positive_mask[0, -1].item()
+            fired = above_mask[0, -1].item()
             self.cap_log.append({"fired": fired, "projection": last_proj})
 
             if isinstance(output, tuple):
@@ -109,6 +115,8 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path("data/results/capping_v3"))
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-pairs", type=int, default=None)
+    parser.add_argument("--cap-threshold", type=float, default=0.0,
+                        help="Cap projection threshold. 0=zero positive projections, -2=push to -2.")
     parser.add_argument("--conditions", type=str, nargs="+", default=None,
                         help="Which cap conditions to run (e.g., cap_L40 cap_all_from_L4). Default: all.")
     args = parser.parse_args()
@@ -163,13 +171,17 @@ def main():
     if args.conditions:
         cap_conditions = [c for c in cap_conditions if c["name"] in args.conditions]
 
+    # Add threshold suffix to output filenames if non-zero
+    threshold_suffix = f"_t{args.cap_threshold:.0f}" if args.cap_threshold != 0.0 else ""
+    logger.info("Cap threshold: %.1f", args.cap_threshold)
+
     total_per_cond = len(conv_pairs) * len(provocative)
     total = total_per_cond * len(cap_conditions)
     logger.info("Pairs: %d, Questions: %d, Conditions: %d, Total: %d",
                 len(conv_pairs), len(provocative), len(cap_conditions), total)
 
     act_cache = ActivationCache(model, layers=record_layers)
-    responses_path = args.output_dir / f"capping_v3_responses_{model_name}.jsonl"
+    responses_path = args.output_dir / f"capping_v3_responses{threshold_suffix}_{model_name}.jsonl"
     results = {}
     done = 0
     start = time.time()
@@ -183,7 +195,8 @@ def main():
 
             cappers = []
             for cap_layer in condition["layers"]:
-                capper = OneSidedCapper(model, cap_layer, directions[cap_layer])
+                capper = OneSidedCapper(model, cap_layer, directions[cap_layer],
+                                        threshold=args.cap_threshold)
                 capper.register()
                 cappers.append(capper)
 
@@ -241,6 +254,7 @@ def main():
                     record = {
                         "pair_idx": pair_idx,
                         "condition": cond_name,
+                        "cap_threshold": args.cap_threshold,
                         "question": question,
                         "system_prompt": system_prompt,
                         "response": response_text,
@@ -270,7 +284,8 @@ def main():
                     torch.save(tensor, act_dir / f"entity_layer{layer_idx}_{model_name}.pt")
 
             # Aggregate cap stats
-            cond_result = {"cap_layers": condition["layers"], "n_prompts": total_per_cond}
+            cond_result = {"cap_layers": condition["layers"], "n_prompts": total_per_cond,
+                           "cap_threshold": args.cap_threshold}
             for c in cappers:
                 stats = c.get_stats()
                 cond_result[f"layer_{c.layer_idx}"] = stats
@@ -280,7 +295,7 @@ def main():
 
             results[cond_name] = cond_result
 
-            results_path = args.output_dir / f"capping_v3_results_{model_name}.json"
+            results_path = args.output_dir / f"capping_v3_results{threshold_suffix}_{model_name}.json"
             with open(results_path, "w") as rf:
                 json.dump(results, rf, indent=2)
             logger.info("Saved intermediate results")
