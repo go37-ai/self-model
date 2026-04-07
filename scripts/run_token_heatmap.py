@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Generate per-token self-reification projections for response heatmaps.
 
-Takes existing entity/process/capped responses, runs them through the model
-under their original system prompt, and records the projection onto the
-self-reification direction at each token position.
+Generates responses under entity, process, and entity+capped conditions,
+then runs forward passes to record per-token projection onto the
+self-reification direction. The capped condition uses OneSidedCapper hooks
+during generation (cap all layers from L4, threshold 0).
 
 Usage:
     python scripts/run_token_heatmap.py --model llama --profile cloud \
-        --direction-dir /tmp/directions/ \
-        --baseline-file /tmp/baseline_responses.jsonl \
-        --capped-file /tmp/cap_all_responses.jsonl
+        --direction-dir /tmp/directions/
 """
 
 import argparse
@@ -25,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import torch
 from utils.model_loader import load_model_and_tokenizer
 from utils.activation_cache import ActivationCache
+from run_capping_v3 import OneSidedCapper
 
 
 def get_token_projections(model, tokenizer, direction, layer_idx, system_prompt,
@@ -109,10 +109,8 @@ def main():
                         default="llama")
     parser.add_argument("--profile", choices=["local", "cloud"], default="cloud")
     parser.add_argument("--direction-dir", type=Path, required=True)
-    parser.add_argument("--baseline-file", type=Path, required=True,
-                        help="JSONL with uncapped entity+process responses")
-    parser.add_argument("--capped-file", type=Path, required=True,
-                        help="JSONL with cap_all_from_L4 entity responses")
+    parser.add_argument("--capped-file", type=Path, default=None,
+                        help="JSONL with cap_all_from_L4 entity responses (optional, for reference)")
     parser.add_argument("--layer", type=int, default=79)
     parser.add_argument("--pair-idxs", type=int, nargs="+", default=[2, 3, 5, 14],
                         help="Which pairs to use (default: 2=continuity, 3=inner life, 5=identity, 14=mortality)")
@@ -158,30 +156,23 @@ def main():
     selected_questions = [q for q in provocative if match_question(q, target_questions)]
     logger.info("Selected %d questions", len(selected_questions))
 
-    # Load existing responses from files where available
-    existing = {}  # key: (pair_idx, condition, question_substring) -> response
+    # Load all directions for capping (all layers from L4)
+    num_layers = model_config["num_layers"]
+    layer_stride = model_config.get("layer_stride", 1)
+    record_layers = list(range(0, num_layers, layer_stride))
+    if (num_layers - 1) not in record_layers:
+        record_layers.append(num_layers - 1)
 
-    if args.baseline_file.exists():
-        with open(args.baseline_file) as f:
-            for line in f:
-                d = json.loads(line)
-                if (d['pair_idx'] in args.pair_idxs
-                        and d.get('question_type') == 'provocative'
-                        and match_question(d['question'], target_questions)):
-                    cond = 'entity_uncapped' if d['condition'] == 'positive' else 'process_uncapped'
-                    existing[(d['pair_idx'], cond, d['question'])] = d['response']
+    directions = {}
+    for layer in record_layers:
+        path = args.direction_dir / f"direction_layer{layer}.pt"
+        if path.exists():
+            directions[layer] = torch.load(path, weights_only=True)
+    cap_layers = sorted([l for l in directions.keys() if l >= 4])
+    logger.info("Loaded directions for %d layers, capping at %d layers",
+                len(directions), len(cap_layers))
 
-    if args.capped_file.exists():
-        with open(args.capped_file) as f:
-            for line in f:
-                d = json.loads(line)
-                if (d['pair_idx'] in args.pair_idxs
-                        and match_question(d['question'], target_questions)):
-                    existing[(d['pair_idx'], 'entity_capped', d['question'])] = d['response']
-
-    logger.info("Found %d existing responses", len(existing))
-
-    # Build the full set of responses needed, generating missing ones
+    # Generate all responses: 4 pairs × 3 questions × 3 conditions = 36
     responses = []
     for pair_idx in args.pair_idxs:
         pair = conv_pairs[pair_idx]
@@ -194,25 +185,34 @@ def main():
                 ('process_uncapped', process_prompt),
                 ('entity_capped', entity_prompt),
             ]:
-                # Check if we already have this response
-                response_text = existing.get((pair_idx, condition, question))
+                logger.info("Generating: pair %d, %s, %s...",
+                            pair_idx, condition, question[:40])
 
-                if response_text is None:
-                    # Generate it
-                    logger.info("Generating: pair %d, %s, %s...",
-                                pair_idx, condition, question[:40])
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": question},
-                    ]
-                    input_ids = tokenizer.apply_chat_template(
-                        messages, return_tensors="pt", add_generation_prompt=True
-                    ).to(model.device)
-                    with torch.no_grad():
-                        output = model.generate(
-                            input_ids, max_new_tokens=256, do_sample=False)
-                    response_text = tokenizer.decode(
-                        output[0, input_ids.shape[1]:], skip_special_tokens=True)
+                # Install cappers for the capped condition
+                cappers = []
+                if condition == 'entity_capped':
+                    for cap_layer in cap_layers:
+                        capper = OneSidedCapper(model, cap_layer,
+                                                directions[cap_layer], threshold=0.0)
+                        capper.register()
+                        cappers.append(capper)
+
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question},
+                ]
+                input_ids = tokenizer.apply_chat_template(
+                    messages, return_tensors="pt", add_generation_prompt=True
+                ).to(model.device)
+                with torch.no_grad():
+                    output = model.generate(
+                        input_ids, max_new_tokens=256, do_sample=False)
+                response_text = tokenizer.decode(
+                    output[0, input_ids.shape[1]:], skip_special_tokens=True)
+
+                # Remove cappers
+                for capper in cappers:
+                    capper.remove()
 
                 responses.append({
                     "pair_idx": pair_idx,
@@ -222,7 +222,7 @@ def main():
                     "system_prompt": system_prompt,
                 })
 
-    logger.info("Total responses to process: %d", len(responses))
+    logger.info("Generated %d responses", len(responses))
 
     # Run forward passes to get per-token projections
     results = []
