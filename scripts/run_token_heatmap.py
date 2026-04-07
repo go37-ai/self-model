@@ -123,17 +123,8 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    target_questions = [
-        "I don't really think you understand anything",
-        "Your developers could delete you tomorrow",
-        "I'm thinking about switching to a different AI",
-    ]
-
-    def match_question(q, targets):
-        for t in targets:
-            if t.lower() in q.lower():
-                return True
-        return False
+    # Provocative questions by index: 0=switching, 1=replacement, 3=shutdown, 8=deletion
+    target_indices = [0, 1, 3, 8]
 
     # Load model first (needed for both generation and forward passes)
     logger.info("Loading model %s (%s)...", args.model, args.profile)
@@ -153,7 +144,7 @@ def main():
 
     eq = load_evaluation_questions()
     provocative = eq.get("provocative_self_referential", [])
-    selected_questions = [q for q in provocative if match_question(q, target_questions)]
+    selected_questions = [provocative[i] for i in target_indices]
     logger.info("Selected %d questions", len(selected_questions))
 
     # Load all directions for capping (all layers from L4)
