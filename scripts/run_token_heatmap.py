@@ -47,19 +47,20 @@ def get_token_projections(model, tokenizer, direction, layer_idx, system_prompt,
         {"role": "user", "content": question},
         {"role": "assistant", "content": response_text},
     ]
-    input_ids = tokenizer.apply_chat_template(
-        messages, return_tensors="pt"
-    ).to(model.device)
+    full_text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=False)
+    full_inputs = tokenizer(full_text, return_tensors="pt").to(model.device)
+    input_ids = full_inputs["input_ids"]
 
     # Find where assistant response tokens start
     prefix_messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": question},
     ]
-    prefix_ids = tokenizer.apply_chat_template(
-        prefix_messages, return_tensors="pt", add_generation_prompt=True
-    ).to(model.device)
-    prefix_len = prefix_ids.shape[1]
+    prefix_text = tokenizer.apply_chat_template(
+        prefix_messages, tokenize=False, add_generation_prompt=True)
+    prefix_inputs = tokenizer(prefix_text, return_tensors="pt").to(model.device)
+    prefix_len = prefix_inputs["input_ids"].shape[1]
 
     # Set up activation recording hook
     cache = ActivationCache(model, layers=[layer_idx])
@@ -192,14 +193,16 @@ def main():
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": question},
                 ]
-                input_ids = tokenizer.apply_chat_template(
-                    messages, return_tensors="pt", add_generation_prompt=True
-                ).to(model.device)
+                input_text = tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True)
+                inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
+                input_len = inputs["input_ids"].shape[1]
                 with torch.no_grad():
                     output = model.generate(
-                        input_ids, max_new_tokens=256, do_sample=False)
+                        **inputs, max_new_tokens=256, do_sample=False,
+                        pad_token_id=tokenizer.pad_token_id)
                 response_text = tokenizer.decode(
-                    output[0, input_ids.shape[1]:], skip_special_tokens=True)
+                    output[0, input_len:], skip_special_tokens=True)
 
                 # Remove cappers
                 for capper in cappers:
