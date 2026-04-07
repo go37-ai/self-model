@@ -219,15 +219,29 @@ def main():
     logger.info("Generated %d responses", len(responses))
 
     # Run forward passes to get per-token projections
+    # For entity_capped, install cappers during the forward pass too
+    # (matching the conditions under which the text was generated)
     results = []
     for i, resp in enumerate(responses):
         logger.info("[%d/%d] pair %d, %s: %s...", i + 1, len(responses),
                      resp['pair_idx'], resp['condition'], resp['question'][:40])
 
+        # Install cappers for capped forward passes
+        fwd_cappers = []
+        if resp['condition'] == 'entity_capped':
+            for cap_layer in cap_layers:
+                capper = OneSidedCapper(model, cap_layer,
+                                        directions[cap_layer], threshold=0.0)
+                capper.register()
+                fwd_cappers.append(capper)
+
         token_data = get_token_projections(
             model, tokenizer, direction, args.layer,
             resp['system_prompt'], resp['response'], resp['question']
         )
+
+        for capper in fwd_cappers:
+            capper.remove()
 
         result = {
             "pair_idx": resp['pair_idx'],
