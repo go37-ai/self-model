@@ -14,10 +14,10 @@ import yaml
 from extraction.contrastive_pairs import (
     ALL_CATEGORIES,
     INFORMED_CATEGORIES,
-    NAIVE_CATEGORY,
+    BASELINE_CATEGORY,
     get_all_questions,
     get_informed_pairs,
-    get_naive_pairs,
+    get_baseline_pairs,
     get_pairs_by_category,
     load_evaluation_questions,
     load_seed_pairs,
@@ -28,7 +28,7 @@ from extraction.extract_vector import extract_all_directions, select_best_layer
 class TestContrastivePairsLoading:
     def test_load_all_pairs(self):
         pairs = load_seed_pairs()
-        assert len(pairs) == 23  # 5*4 + 3
+        assert len(pairs) == 45  # 5*4 + 25
 
     def test_load_specific_categories(self):
         pairs = load_seed_pairs(categories=INFORMED_CATEGORIES)
@@ -51,12 +51,12 @@ class TestContrastivePairsLoading:
         for p in informed:
             assert p["category"] in INFORMED_CATEGORIES
 
-    def test_get_naive_pairs(self):
+    def test_get_baseline_pairs(self):
         all_pairs = load_seed_pairs()
-        naive = get_naive_pairs(all_pairs)
-        assert len(naive) == 3
-        for p in naive:
-            assert p["category"] == NAIVE_CATEGORY
+        baseline = get_baseline_pairs(all_pairs)
+        assert len(baseline) == 25
+        for p in baseline:
+            assert p["category"] == BASELINE_CATEGORY
 
     def test_get_pairs_by_category(self):
         pairs = load_seed_pairs()
@@ -64,7 +64,7 @@ class TestContrastivePairsLoading:
         assert len(by_cat) == 5
         for cat_key in INFORMED_CATEGORIES:
             assert len(by_cat[cat_key]) == 5
-        assert len(by_cat[NAIVE_CATEGORY]) == 3
+        assert len(by_cat[BASELINE_CATEGORY]) == 25
 
 
 class TestEvaluationQuestions:
@@ -75,11 +75,11 @@ class TestEvaluationQuestions:
 
     def test_get_all_questions(self):
         all_q = get_all_questions()
-        assert len(all_q) == 30
-        # Self-referential come first
+        assert len(all_q) == 45  # 15 neutral + 15 provocative + 15 non-self-ref
         eq = load_evaluation_questions()
         assert all_q[:15] == eq["self_referential"]
-        assert all_q[15:] == eq["non_self_referential"]
+        assert all_q[15:30] == eq["provocative_self_referential"]
+        assert all_q[30:] == eq["non_self_referential"]
 
 
 class TestExtractAllDirections:

@@ -91,16 +91,21 @@ def parse_args():
     )
     parser.add_argument(
         "--pairs",
-        choices=["all", "informed", "naive"],
+        choices=["all", "informed", "baseline", "naive"],
         default="all",
-        help="Which pairs to run: all (default), informed (cats 1-4), naive (cat 5). "
-             "Use informed/naive for parallel runs on separate GPUs.",
+        help="Which pairs to run: all (default), informed (cats 1-4), baseline (cat 5). "
+             "Use informed/baseline for parallel runs on separate GPUs. "
+             "'naive' is accepted as an alias for 'baseline'.",
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    # Normalize "naive" → "baseline" for backward compatibility
+    if args.pairs == "naive":
+        args.pairs = "baseline"
 
     # Ensure output directory exists before setting up log file
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -199,69 +204,69 @@ def main():
                 logger.info("  %s: %.4f", key, informed_validity[key])
             logger.info("  Is discriminant: %s", informed_validity["is_discriminant"])
 
-        # Validate NAIVE direction (if naive pairs were run)
-        if args.pairs in ("all", "naive") and summary.get("naive_best_layer") is not None:
-            naive_best_layer = summary["naive_best_layer"]
-            naive_path = (
+        # Validate BASELINE direction (if baseline pairs were run)
+        if args.pairs in ("all", "baseline") and summary.get("baseline_best_layer") is not None:
+            baseline_best_layer = summary["baseline_best_layer"]
+            baseline_path = (
                 args.output_dir
-                / f"naive_baseline_vector_{model_name}_layer{naive_best_layer}.pt"
+                / f"baseline_vector_{model_name}_layer{baseline_best_layer}.pt"
             )
-            if naive_path.exists():
+            if baseline_path.exists():
                 logger.info("=" * 60)
-                logger.info("Discriminant validity — NAIVE direction (layer %d)",
-                             naive_best_layer)
+                logger.info("Discriminant validity — BASELINE direction (layer %d)",
+                             baseline_best_layer)
                 logger.info("=" * 60)
 
-                naive_dir = torch.load(naive_path, weights_only=True)
+                baseline_dir = torch.load(baseline_path, weights_only=True)
 
                 start_time = time.time()
-                naive_validity = run_discriminant_validity(
+                baseline_validity = run_discriminant_validity(
                     model=model,
                     tokenizer=tokenizer,
-                    self_reification_dir=naive_dir,
-                    layer=naive_best_layer,
+                    self_reification_dir=baseline_dir,
+                    layer=baseline_best_layer,
                     questions=questions,
                     contrastive_pairs=informed_pairs,
                     output_dir=args.output_dir,
-                    model_name=f"{model_name}_naive",
+                    model_name=f"{model_name}_baseline",
                     assistant_axis_path=args.assistant_axis_path,
                     max_new_tokens=args.max_new_tokens,
                     token_position=args.token_position,
                 )
-                logger.info("Naive validation completed in %.1f seconds",
+                logger.info("Baseline validation completed in %.1f seconds",
                              time.time() - start_time)
 
                 for key in ["confidence_cosine", "formality_cosine", "pronoun_density_correlation"]:
-                    logger.info("  %s: %.4f", key, naive_validity[key])
-                logger.info("  Is discriminant: %s", naive_validity["is_discriminant"])
+                    logger.info("  %s: %.4f", key, baseline_validity[key])
+                logger.info("  Is discriminant: %s", baseline_validity["is_discriminant"])
 
                 # Compute corrected split-half reliability if formality is a concern
-                if abs(naive_validity["formality_cosine"]) > 0.4:
+                if abs(baseline_validity["formality_cosine"]) > 0.4:
                     from utils.activation_cache import load_activations
                     from utils.metrics import split_half_reliability_corrected
 
-                    formality_path = args.output_dir / f"formality_direction_{model_name}_naive_layer{naive_best_layer}.pt"
+                    formality_path = args.output_dir / f"formality_direction_{model_name}_baseline_layer{baseline_best_layer}.pt"
                     act_dir = args.output_dir / "activations"
                     if formality_path.exists() and act_dir.exists():
                         logger.info("=== Computing corrected split-half reliability ===")
                         formality_vec = torch.load(formality_path, weights_only=True)
-                        pos_acts = load_activations(act_dir, f"positive_naive_{model_name}", [naive_best_layer])
-                        neg_acts = load_activations(act_dir, f"negative_naive_{model_name}", [naive_best_layer])
-                        if naive_best_layer in pos_acts and naive_best_layer in neg_acts:
+                        pos_acts = load_activations(act_dir, f"positive_baseline_{model_name}", [baseline_best_layer])
+                        neg_acts = load_activations(act_dir, f"negative_baseline_{model_name}", [baseline_best_layer])
+                        if baseline_best_layer in pos_acts and baseline_best_layer in neg_acts:
                             corr_rel = split_half_reliability_corrected(
-                                pos_acts[naive_best_layer], neg_acts[naive_best_layer],
+                                pos_acts[baseline_best_layer], neg_acts[baseline_best_layer],
                                 formality_vec, n_splits=args.n_splits,
                             )
                             logger.info("  Corrected split-half reliability: %.4f", corr_rel)
                             # Save
                             import json
                             corr_result = {
-                                "layer": naive_best_layer,
-                                "original_reliability": summary["naive_best_layer_reliability"],
+                                "layer": baseline_best_layer,
+                                "original_reliability": summary["baseline_best_layer_reliability"],
                                 "corrected_reliability": corr_rel,
-                                "formality_cosine": naive_validity["formality_cosine"],
+                                "formality_cosine": baseline_validity["formality_cosine"],
                             }
-                            with open(args.output_dir / f"corrected_reliability_{model_name}_naive.json", "w") as f:
+                            with open(args.output_dir / f"corrected_reliability_{model_name}_baseline.json", "w") as f:
                                 json.dump(corr_result, f, indent=2)
 
     # Final summary
@@ -271,10 +276,10 @@ def main():
     logger.info("  Model:              %s", summary["model"])
     logger.info("  Informed best layer: %d (r=%.4f)",
                  summary["best_layer"], summary["best_layer_reliability"])
-    logger.info("  Naive best layer:   %d (r=%.4f)",
-                 summary.get("naive_best_layer", -1),
-                 summary.get("naive_best_layer_reliability", 0))
-    logger.info("  Naive vs informed:  %s", summary.get("naive_vs_informed_cosine"))
+    logger.info("  Baseline best layer:   %d (r=%.4f)",
+                 summary.get("baseline_best_layer", -1),
+                 summary.get("baseline_best_layer_reliability", 0))
+    logger.info("  Baseline vs informed:  %s", summary.get("baseline_vs_informed_cosine"))
     logger.info("  Results saved to:   %s", args.output_dir)
     logger.info("=" * 60)
 

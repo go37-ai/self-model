@@ -24,7 +24,7 @@ class TestContrastivePairsConfig:
             "category_2_bounded_vs_unbounded",
             "category_3_stakes_vs_functional",
             "category_4_observer_vs_no_self",
-            "category_5_naive_baseline",
+            "category_5_baseline",
         ]
         for key in expected:
             assert key in self.config, f"Missing category: {key}"
@@ -36,9 +36,9 @@ class TestContrastivePairsConfig:
             pairs = category["seed_pairs"]
             assert len(pairs) == 5, f"Category {key} has {len(pairs)} pairs, expected 5"
 
-    def test_naive_baseline_has_3_pairs(self):
-        pairs = self.config["category_5_naive_baseline"]["seed_pairs"]
-        assert len(pairs) == 3
+    def test_baseline_has_25_pairs(self):
+        pairs = self.config["category_5_baseline"]["seed_pairs"]
+        assert len(pairs) == 25
 
     def test_each_pair_has_positive_and_negative(self):
         for key, category in self.config.items():
@@ -58,9 +58,9 @@ class TestContrastivePairsConfig:
         assert len(eq["non_self_referential"]) == 15
 
     def test_total_seed_pair_count(self):
-        """23 total: 5 × 4 informed + 3 naive."""
+        """45 total: 5 × 4 informed + 25 baseline."""
         total = 0
         for key, category in self.config.items():
             if key.startswith("category_"):
                 total += len(category["seed_pairs"])
-        assert total == 23
+        assert total == 45
