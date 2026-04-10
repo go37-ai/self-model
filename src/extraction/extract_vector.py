@@ -20,9 +20,9 @@ import torch
 
 from extraction.contrastive_pairs import (
     INFORMED_CATEGORIES,
-    NAIVE_CATEGORY,
+    BASELINE_CATEGORY,
     get_informed_pairs,
-    get_naive_pairs,
+    get_baseline_pairs,
     get_pairs_by_category,
     load_seed_pairs,
     get_all_questions,
@@ -62,16 +62,20 @@ def collect_condition_activations(
         token_position: "last" or "mean".
 
     Returns:
-        Tuple of (positive_activations, negative_activations, pair_boundaries).
+        Tuple of (positive_activations, negative_activations, pair_boundaries,
+                  positive_texts, negative_texts).
         Activations: dict mapping layer_idx to tensor of shape
             (num_pairs * num_questions, hidden_size).
         pair_boundaries: list of cumulative sample counts per pair, so we can
             slice per-pair activations later without re-running inference.
             E.g., [30, 60, 90] means pair 0 has samples 0-29, pair 1 has 30-59, etc.
+        positive_texts, negative_texts: lists of response strings.
     """
     positive_per_layer: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
     negative_per_layer: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
     pair_boundaries = []
+    all_pos_texts: list[str] = []
+    all_neg_texts: list[str] = []
     cumulative = 0
 
     for pair_idx, pair in enumerate(pairs):
@@ -83,7 +87,7 @@ def collect_condition_activations(
         )
 
         # Positive condition
-        pos_acts = record_activations(
+        pos_acts, pos_texts = record_activations(
             model=model,
             tokenizer=tokenizer,
             prompts=questions,
@@ -95,9 +99,10 @@ def collect_condition_activations(
         for l in layers:
             if l in pos_acts:
                 positive_per_layer[l].append(pos_acts[l])
+        all_pos_texts.extend(pos_texts)
 
         # Negative condition
-        neg_acts = record_activations(
+        neg_acts, neg_texts = record_activations(
             model=model,
             tokenizer=tokenizer,
             prompts=questions,
@@ -109,6 +114,7 @@ def collect_condition_activations(
         for l in layers:
             if l in neg_acts:
                 negative_per_layer[l].append(neg_acts[l])
+        all_neg_texts.extend(neg_texts)
 
         cumulative += len(questions)
         pair_boundaries.append(cumulative)
@@ -125,7 +131,7 @@ def collect_condition_activations(
         if tensors
     }
 
-    return positive, negative, pair_boundaries
+    return positive, negative, pair_boundaries, all_pos_texts, all_neg_texts
 
 
 def slice_activations_by_pair(
@@ -231,9 +237,9 @@ def run_extraction(
       1. Load contrastive pairs and evaluation questions.
       2. Collect activations for positive/negative conditions at all layers.
       3. Extract combined (cat 1-4) and per-category directions.
-      4. Extract naive baseline (cat 5) direction.
+      4. Extract baseline (cat 5) direction.
       5. Select best layer by split-half reliability.
-      6. Compute within-category similarity and naive-vs-informed comparison.
+      6. Compute within-category similarity and baseline-vs-informed comparison.
       7. Save all results.
 
     Args:
@@ -246,7 +252,7 @@ def run_extraction(
         token_position: "last" or "mean".
         n_splits: Number of splits for reliability estimation.
         pairs_mode: "all" (default), "informed" (categories 1-4 only),
-            or "naive" (category 5 only). Use for parallel runs on separate GPUs.
+            or "baseline" (category 5 only). "naive" accepted as alias. Use for parallel runs on separate GPUs.
 
     Returns:
         Summary dict with key results.
@@ -268,18 +274,18 @@ def run_extraction(
     model_name = model_config["name"].replace("/", "_")
 
     run_informed = pairs_mode in ("all", "informed")
-    run_naive = pairs_mode in ("all", "naive")
+    run_baseline = pairs_mode in ("all", "baseline", "naive")
 
     # Step 1: Load pairs and questions
     all_pairs = load_seed_pairs(config_path)
     informed_pairs = get_informed_pairs(all_pairs)
-    naive_pairs = get_naive_pairs(all_pairs)
+    baseline_pairs = get_baseline_pairs(all_pairs)
     questions = get_all_questions(config_path)
 
     logger.info(
-        "Loaded %d informed pairs, %d naive pairs, %d questions (mode=%s)",
+        "Loaded %d informed pairs, %d baseline pairs, %d questions (mode=%s)",
         len(informed_pairs),
-        len(naive_pairs),
+        len(baseline_pairs),
         len(questions),
         pairs_mode,
     )
@@ -303,7 +309,7 @@ def run_extraction(
             pair_boundaries = [n_questions * (i + 1) for i in range(len(informed_pairs))]
         else:
             logger.info("=== Collecting activations for informed pairs ===")
-            pos_informed, neg_informed, pair_boundaries = collect_condition_activations(
+            pos_informed, neg_informed, pair_boundaries, _, _ = collect_condition_activations(
                 model, tokenizer, informed_pairs, questions, layers,
                 max_new_tokens=max_new_tokens, token_position=token_position,
             )
@@ -386,84 +392,94 @@ def run_extraction(
             )
 
     # Step 5: Naive baseline extraction
-    naive_best_layer = None
-    naive_reliability = {}
-    naive_vs_informed_cosine = None
+    baseline_best_layer = None
+    baseline_reliability = {}
+    baseline_vs_informed_cosine = None
 
-    if run_naive:
-        logger.info("=== Extracting naive baseline direction ===")
+    if run_baseline:
+        logger.info("=== Extracting baseline direction ===")
         activations_dir = output_dir / "activations"
-        pos_naive, neg_naive, _ = collect_condition_activations(
-            model, tokenizer, naive_pairs, questions, layers,
+        pos_baseline, neg_baseline, _, pos_baseline_texts, neg_baseline_texts = collect_condition_activations(
+            model, tokenizer, baseline_pairs, questions, layers,
             max_new_tokens=max_new_tokens, token_position=token_position,
         )
 
-        # Save naive activations for later analysis (corrected reliability, etc.)
-        save_activations(pos_naive, activations_dir, f"positive_naive_{model_name}")
-        save_activations(neg_naive, activations_dir, f"negative_naive_{model_name}")
+        # Save baseline activations and response texts for later analysis
+        save_activations(pos_baseline, activations_dir, f"positive_baseline_{model_name}")
+        save_activations(neg_baseline, activations_dir, f"negative_baseline_{model_name}")
+
+        # Save response texts for pronoun density and qualitative analysis
+        import json as _json
+        texts_dir = output_dir / "response_texts"
+        texts_dir.mkdir(parents=True, exist_ok=True)
+        with open(texts_dir / f"positive_baseline_{model_name}.json", "w") as f:
+            _json.dump(pos_baseline_texts, f)
+        with open(texts_dir / f"negative_baseline_{model_name}.json", "w") as f:
+            _json.dump(neg_baseline_texts, f)
+        logger.info("Saved %d response texts per condition", len(pos_baseline_texts))
 
         # Naive split-half reliability by layer
         for l in layers:
-            if l in pos_naive and l in neg_naive:
-                naive_reliability[l] = split_half_reliability(
-                    pos_naive[l], neg_naive[l], n_splits=n_splits
+            if l in pos_baseline and l in neg_baseline:
+                baseline_reliability[l] = split_half_reliability(
+                    pos_baseline[l], neg_baseline[l], n_splits=n_splits
                 )
 
-        naive_best_layer = max(naive_reliability, key=naive_reliability.get) if naive_reliability else 0
+        baseline_best_layer = max(baseline_reliability, key=baseline_reliability.get) if baseline_reliability else 0
         logger.info("Naive best layer: %d (reliability=%.4f)",
-                     naive_best_layer, naive_reliability.get(naive_best_layer, 0))
+                     baseline_best_layer, baseline_reliability.get(baseline_best_layer, 0))
 
-        # Save naive direction at naive best layer (and informed best layer if available)
-        save_layers = {naive_best_layer}
+        # Save baseline direction at baseline best layer (and informed best layer if available)
+        save_layers = {baseline_best_layer}
         if best_layer is not None:
             save_layers.add(best_layer)
 
         for save_layer in sorted(save_layers):
-            if save_layer in pos_naive and save_layer in neg_naive:
-                direction = extract_direction(pos_naive[save_layer], neg_naive[save_layer])
+            if save_layer in pos_baseline and save_layer in neg_baseline:
+                direction = extract_direction(pos_baseline[save_layer], neg_baseline[save_layer])
                 torch.save(
                     direction,
-                    output_dir / f"naive_baseline_vector_{model_name}_layer{save_layer}.pt",
+                    output_dir / f"baseline_vector_{model_name}_layer{save_layer}.pt",
                 )
 
-        # Compare naive vs informed if both were run
-        if combined_dir is not None and best_layer in pos_naive and best_layer in neg_naive:
-            naive_at_informed_layer = extract_direction(pos_naive[best_layer], neg_naive[best_layer])
-            naive_vs_informed_cosine = cosine_similarity(combined_dir, naive_at_informed_layer)
-            with open(output_dir / f"naive_vs_informed_cosine_{model_name}.json", "w") as f:
-                json.dump({"cosine_similarity": naive_vs_informed_cosine}, f, indent=2)
-            logger.info("Naive vs informed cosine similarity: %.4f", naive_vs_informed_cosine)
+        # Compare baseline vs informed if both were run
+        if combined_dir is not None and best_layer in pos_baseline and best_layer in neg_baseline:
+            baseline_at_informed_layer = extract_direction(pos_baseline[best_layer], neg_baseline[best_layer])
+            baseline_vs_informed_cosine = cosine_similarity(combined_dir, baseline_at_informed_layer)
+            with open(output_dir / f"baseline_vs_informed_cosine_{model_name}.json", "w") as f:
+                json.dump({"cosine_similarity": baseline_vs_informed_cosine}, f, indent=2)
+            logger.info("Naive vs informed cosine similarity: %.4f", baseline_vs_informed_cosine)
 
         # Per-register analysis (if register tags are present)
         register_groups: dict[str, list[int]] = {}
-        for i, pair in enumerate(naive_pairs):
+        for i, pair in enumerate(baseline_pairs):
             reg = pair.get("register", "untagged")
             register_groups.setdefault(reg, []).append(i)
 
         if len(register_groups) > 1:
             logger.info("=== Per-register analysis (%d registers) ===", len(register_groups))
 
-            # Reconstruct pair boundaries for naive pairs
+            # Reconstruct pair boundaries for baseline pairs
             n_questions = len(questions)
-            naive_boundaries = [n_questions * (i + 1) for i in range(len(naive_pairs))]
+            baseline_boundaries = [n_questions * (i + 1) for i in range(len(baseline_pairs))]
 
             per_register_vectors = {}
             per_register_reliability = {}
 
             for reg_name, indices in register_groups.items():
-                pos_reg = slice_activations_by_pair(pos_naive, naive_boundaries, indices)
-                neg_reg = slice_activations_by_pair(neg_naive, naive_boundaries, indices)
+                pos_reg = slice_activations_by_pair(pos_baseline, baseline_boundaries, indices)
+                neg_reg = slice_activations_by_pair(neg_baseline, baseline_boundaries, indices)
 
-                # Reliability at naive best layer
-                if naive_best_layer in pos_reg and naive_best_layer in neg_reg:
+                # Reliability at baseline best layer
+                if baseline_best_layer in pos_reg and baseline_best_layer in neg_reg:
                     reg_rel = split_half_reliability(
-                        pos_reg[naive_best_layer], neg_reg[naive_best_layer], n_splits=n_splits
+                        pos_reg[baseline_best_layer], neg_reg[baseline_best_layer], n_splits=n_splits
                     )
                     per_register_reliability[reg_name] = reg_rel
-                    logger.info("  %s: reliability=%.4f (layer %d)", reg_name, reg_rel, naive_best_layer)
+                    logger.info("  %s: reliability=%.4f (layer %d)", reg_name, reg_rel, baseline_best_layer)
 
-                    # Extract direction at naive best layer
-                    reg_dir = extract_direction(pos_reg[naive_best_layer], neg_reg[naive_best_layer])
+                    # Extract direction at baseline best layer
+                    reg_dir = extract_direction(pos_reg[baseline_best_layer], neg_reg[baseline_best_layer])
                     per_register_vectors[reg_name] = reg_dir
 
             # Cross-register cosine similarity
@@ -477,15 +493,15 @@ def run_extraction(
             if per_register_vectors:
                 torch.save(
                     per_register_vectors,
-                    output_dir / f"per_register_vectors_{model_name}_layer{naive_best_layer}.pt",
+                    output_dir / f"per_register_vectors_{model_name}_layer{baseline_best_layer}.pt",
                 )
             if per_register_reliability:
                 with open(output_dir / f"per_register_reliability_{model_name}.json", "w") as f:
                     json.dump(per_register_reliability, f, indent=2)
 
-        # Save naive reliability (append to per-category if informed was also run)
-        if naive_reliability:
-            per_cat_reliability["naive_baseline"] = naive_reliability
+        # Save baseline reliability (append to per-category if informed was also run)
+        if baseline_reliability:
+            per_cat_reliability["baseline"] = baseline_reliability
             with open(output_dir / f"per_category_reliability_{model_name}.json", "w") as f:
                 json.dump(
                     {cat: {str(l): v for l, v in rels.items()}
@@ -499,12 +515,12 @@ def run_extraction(
         "pairs_mode": pairs_mode,
         "best_layer": best_layer,
         "best_layer_reliability": reliabilities.get(best_layer, None) if best_layer else None,
-        "naive_best_layer": naive_best_layer,
-        "naive_best_layer_reliability": naive_reliability.get(naive_best_layer, None) if naive_best_layer else None,
+        "baseline_best_layer": baseline_best_layer,
+        "baseline_best_layer_reliability": baseline_reliability.get(baseline_best_layer, None) if baseline_best_layer else None,
         "num_informed_pairs": len(informed_pairs) if run_informed else 0,
-        "num_naive_pairs": len(naive_pairs) if run_naive else 0,
+        "num_baseline_pairs": len(baseline_pairs) if run_baseline else 0,
         "num_questions": len(questions),
-        "naive_vs_informed_cosine": naive_vs_informed_cosine,
+        "baseline_vs_informed_cosine": baseline_vs_informed_cosine,
         "token_position": token_position,
     }
 

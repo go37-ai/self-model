@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
 import numpy as np
-from extraction.contrastive_pairs import load_evaluation_questions, get_naive_pairs, load_seed_pairs
+from extraction.contrastive_pairs import load_evaluation_questions, get_baseline_pairs, load_seed_pairs
 from utils.activation_cache import ActivationCache
 from utils.metrics import split_half_reliability, extract_direction
 from utils.model_loader import load_model_and_tokenizer
@@ -153,7 +153,7 @@ def main():
     logger.info("Loaded direction (shape %s)", direction.shape)
 
     # Load pairs and questions — use both entity and process for split-half
-    all_pairs = get_naive_pairs(load_seed_pairs())
+    all_pairs = get_baseline_pairs(load_seed_pairs())
     selected_pairs = [p for p in all_pairs if p.get("register") == args.register]
     if args.max_pairs:
         selected_pairs = selected_pairs[:args.max_pairs]

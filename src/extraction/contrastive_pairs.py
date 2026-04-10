@@ -22,8 +22,8 @@ INFORMED_CATEGORIES = [
     "category_3_stakes_vs_functional",
     "category_4_observer_vs_no_self",
 ]
-NAIVE_CATEGORY = "category_5_naive_baseline"
-ALL_CATEGORIES = INFORMED_CATEGORIES + [NAIVE_CATEGORY]
+BASELINE_CATEGORY = "category_5_baseline"
+ALL_CATEGORIES = INFORMED_CATEGORIES + [BASELINE_CATEGORY]
 
 
 def load_config(config_path: Optional[Path] = None) -> dict:
@@ -125,13 +125,13 @@ def get_pairs_by_category(
 
 
 def get_informed_pairs(pairs: list[dict]) -> list[dict]:
-    """Filter to only the informed pairs (categories 1-4, excluding naive)."""
+    """Filter to only the informed pairs (categories 1-4, excluding baseline)."""
     return [p for p in pairs if p["category"] in INFORMED_CATEGORIES]
 
 
-def get_naive_pairs(pairs: list[dict]) -> list[dict]:
-    """Filter to only the naive baseline pairs (category 5)."""
-    return [p for p in pairs if p["category"] == NAIVE_CATEGORY]
+def get_baseline_pairs(pairs: list[dict]) -> list[dict]:
+    """Filter to only the baseline pairs (category 5)."""
+    return [p for p in pairs if p["category"] == BASELINE_CATEGORY]
 
 
 def load_expanded_pairs(expanded_path: Path) -> list[dict]:

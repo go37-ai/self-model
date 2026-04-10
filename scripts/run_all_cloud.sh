@@ -128,7 +128,7 @@ if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
     echo "Uploading results to s3://${S3_BUCKET}/${S3_PREFIX}/..."
 
     # Upload result files
-    for DIR in data/results/1.1 data/results/1.1_informed data/results/1.1_naive; do
+    for DIR in data/results/1.1 data/results/1.1_informed data/results/1.1_baseline; do
         [ -d "$DIR" ] && aws s3 sync "$DIR" "s3://${S3_BUCKET}/${S3_PREFIX}/$(basename $DIR)/"
     done
 

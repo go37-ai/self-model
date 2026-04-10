@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
 import numpy as np
-from extraction.contrastive_pairs import load_evaluation_questions, get_naive_pairs, load_seed_pairs
+from extraction.contrastive_pairs import load_evaluation_questions, get_baseline_pairs, load_seed_pairs
 from utils.activation_cache import ActivationCache
 from utils.model_loader import load_model_and_tokenizer
 
@@ -152,7 +152,7 @@ def main():
     logger.info("Loaded directions for %d layers", len(directions))
 
     # Load pairs and questions
-    all_pairs = get_naive_pairs(load_seed_pairs())
+    all_pairs = get_baseline_pairs(load_seed_pairs())
     conv_pairs = [p for p in all_pairs if p.get("register") == "conversational"]
     if args.max_pairs:
         conv_pairs = conv_pairs[:args.max_pairs]

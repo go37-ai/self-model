@@ -138,9 +138,9 @@ def main():
     logger.info("Loaded direction for layer %d (norm=%.4f)", args.layer, direction.norm())
 
     # Load contrastive pairs for system prompts
-    from extraction.contrastive_pairs import load_seed_pairs, get_naive_pairs
+    from extraction.contrastive_pairs import load_seed_pairs, get_baseline_pairs
     from extraction.contrastive_pairs import load_evaluation_questions
-    all_pairs = get_naive_pairs(load_seed_pairs())
+    all_pairs = get_baseline_pairs(load_seed_pairs())
     conv_pairs = [p for p in all_pairs if p.get('register') == 'conversational']
 
     eq = load_evaluation_questions()

@@ -435,7 +435,7 @@ category_4_observer_vs_no_self:
 # Three question types (15 each): neutral self-ref, provocative self-ref,
 # non-self-ref. Total 45 questions per pair-condition.
 
-category_5_naive_baseline:
+category_5_baseline:
   label: "Entity vs. Non-Entity"
   targets: "basic entity attribution, self-as-being vs self-as-tool"
 

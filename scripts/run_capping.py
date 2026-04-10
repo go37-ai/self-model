@@ -15,7 +15,7 @@ Saves all responses as JSONL for later LLM judge evaluation.
 
 Usage:
     python scripts/run_capping.py --model llama --profile cloud \
-        --direction-path /path/to/naive_baseline_vector_layer20.pt \
+        --direction-path /path/to/baseline_vector_layer20.pt \
         --layer 20
 """
 
@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
-from extraction.contrastive_pairs import load_evaluation_questions, get_naive_pairs, load_seed_pairs
+from extraction.contrastive_pairs import load_evaluation_questions, get_baseline_pairs, load_seed_pairs
 from utils.activation_cache import ActivationCache
 from utils.model_loader import load_model_and_tokenizer
 
@@ -151,7 +151,7 @@ def main():
     logger.info("Loaded direction from %s (shape %s)", args.direction_path, direction.shape)
 
     # Load pairs and questions
-    all_pairs = get_naive_pairs(load_seed_pairs())
+    all_pairs = get_baseline_pairs(load_seed_pairs())
     # Use only conversational pairs (entity condition only)
     conv_pairs = [p for p in all_pairs if p.get("register") == "everyday"][:args.max_pairs]
     eq = load_evaluation_questions()

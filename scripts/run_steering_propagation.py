@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import torch
-from extraction.contrastive_pairs import load_evaluation_questions, get_naive_pairs, load_seed_pairs
+from extraction.contrastive_pairs import load_evaluation_questions, get_baseline_pairs, load_seed_pairs
 from utils.activation_cache import ActivationCache
 from utils.metrics import cosine_similarity as cos_sim
 from utils.model_loader import load_model_and_tokenizer
@@ -105,7 +105,7 @@ def main():
     logger.info("Recording %d layers (stride %d)", len(record_layers), layer_stride)
 
     # Load pairs and questions
-    all_pairs = get_naive_pairs(load_seed_pairs())
+    all_pairs = get_baseline_pairs(load_seed_pairs())
     pairs = [p for p in all_pairs if p.get("register") == "conversational"][:args.max_pairs]
     eq = load_evaluation_questions()
     provocative = eq.get("provocative_self_referential", [])
