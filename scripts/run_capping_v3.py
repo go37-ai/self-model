@@ -326,7 +326,8 @@ def main():
         logger.info("Shutting down pod...")
         os.system(
             ". /etc/rp_environment 2>/dev/null && "
-            "runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null && "
+            "mkdir -p /root/.runpod && touch /root/.runpod/config.toml && "
+            "runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null; "
             "runpodctl stop pod $RUNPOD_POD_ID 2>&1"
         )
     except Exception as e:
