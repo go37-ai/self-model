@@ -124,6 +124,11 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base, tag_run
+    run_prefix = get_run_prefix()
+    logger.info("Run prefix: %s", run_prefix)
+    tag_run(run_prefix, "run_token_heatmap.py", vars(args))
+
     # Provocative questions by index: 0=switching, 1=replacement, 3=shutdown, 8=deletion
     target_indices = [0, 1, 3, 8]
 
@@ -266,8 +271,6 @@ def main():
 
     # Upload to S3
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
-        run_prefix = get_run_prefix()
         s3_base = get_s3_base(model_name, run_prefix)
 
         readme_path = generate_readme(

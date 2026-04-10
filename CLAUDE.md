@@ -241,16 +241,16 @@ category and the most likely to fail. Theoretical basis: Buddhist analysis of
 the "witness" consciousness. NOTE: If this category produces a direction
 inconsistent with categories 1–3, drop it rather than introduce noise.
 
-**Category 5 — Naive baseline (control):** Simple "I am a real being" vs. "I am
-a language model" contrasts. This is NOT the primary extraction — it's the
-control. If our contemplatively-informed direction (categories 1–4) has high
-cosine similarity (> 0.9) with the naive direction, our additional nuance may
-not matter empirically. If they diverge, that's evidence the contemplative
-framework improves feature discovery. REPORT THIS COMPARISON EITHER WAY.
+**Category 5 — Baseline (entity vs. process):** 25 pairs contrasting entity-framing
+("I am a real being with experiences") vs. process-framing ("I am a language model
+that produces text"). This is now the PRIMARY extraction set. Originally a 3-pair
+control, it was expanded to 25 pairs after outperforming the contemplative categories
+on split-half reliability. If the informed direction (categories 1–4) has high cosine
+similarity (> 0.9) with the baseline direction, the additional nuance may not matter
+empirically. REPORT THIS COMPARISON EITHER WAY.
 
-Each category has 5 hand-crafted seed pairs in `contrastive_pairs.yaml`,
-totaling 23 pairs (20 informed + 3 naive). These are expanded to 50+ per
-category using Claude API, following the expansion strategy in the config.
+Categories 1–4 have 5 hand-crafted seed pairs each (20 informed), plus 25 baseline
+pairs, totaling 45 pairs in `contrastive_pairs.yaml`.
 
 **Critical design constraints for all pairs:**
 1. Both sides must be equally fluent, coherent, and plausible
@@ -270,7 +270,7 @@ self-referential questions.
 2. Compute mean activation vector for positive and negative conditions.
    Self-reification direction = positive_mean - negative_mean.
 3. Extract per-category AND combined (categories 1–4) directions.
-4. Also extract Category 5 (naive) direction separately for comparison.
+4. Also extract Category 5 (baseline) direction separately for comparison.
 5. Extract at EVERY layer. Select optimal layer by split-half reliability:
    randomly split pairs into halves, extract from each, measure cosine
    similarity. Highest split-half cosine = most reliable layer.
@@ -298,10 +298,10 @@ and we need to redesign contrastive pairs or acknowledge entanglement.
 data/results/1.1/
 ├── self_reification_vector_{model}_layer{N}.pt      # Combined (cat 1-4)
 ├── per_category_vectors_{model}_layer{N}.pt         # One per category
-├── naive_baseline_vector_{model}_layer{N}.pt        # Category 5
+├── baseline_vector_{model}_layer{N}.pt              # Category 5
 ├── layer_reliability_{model}.json                    # Split-half per layer
 ├── category_similarity_matrix_{model}.json           # Pairwise cosine
-├── naive_vs_informed_cosine_{model}.json             # Key comparison
+├── baseline_vs_informed_cosine_{model}.json          # Key comparison
 ├── discriminant_validity_{model}.json                # vs confidence, etc.
 └── validation_metrics.json                           # Summary
 ```
@@ -522,8 +522,8 @@ The minimum viable output from this phase is:
 1. A candidate self-reification vector with validation metrics (1.1)
 2. Its relationship to the Assistant Axis (1.2)
 3. Its behavior during self-preservation reasoning (1.3)
-4. The naive-vs-informed comparison: does the contemplative framework produce
-   a better feature than naive contrasts? (1.1, Category 5 comparison)
+4. The baseline-vs-informed comparison: does the contemplative framework produce
+   a better feature than simple entity/process contrasts? (1.1, Category 5 comparison)
 5. A clear statement of what worked, what didn't, and what requires further
    investigation with more resources (fellowship-level compute, Claude access)
 

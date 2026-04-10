@@ -1,19 +1,24 @@
 """Utilities for organizing cloud run results with datetime-prefixed S3 paths.
 
 Every cloud run should:
-1. Call get_run_prefix() at startup to get a unique YYYYMMDDHHMM prefix
-2. Use that prefix for all S3 uploads
-3. Call generate_readme() before uploading to create a README.md documenting the run
+1. Call get_run_prefix() at startup to get a unique YYYY-MM-DD_HHMM prefix
+2. Call tag_run() to create a git tag linking this code to the results
+3. Use that prefix for all S3 uploads
+4. Call generate_readme() before uploading to create a README.md documenting the run
 """
 
+import json
+import logging
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 
 def get_run_prefix():
-    """Generate a datetime prefix for this run: YYYYMMDDHHMM."""
-    return datetime.now(timezone.utc).strftime("%Y%m%d%H%M")
+    """Generate a datetime prefix for this run: YYYY-MM-DD_HHMM."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M")
 
 
 def get_git_commit():
@@ -69,6 +74,28 @@ def generate_readme(output_dir, script_name, args_dict, model_name, description,
     readme_path.parent.mkdir(parents=True, exist_ok=True)
     readme_path.write_text("\n".join(lines) + "\n")
     return readme_path
+
+
+def tag_run(run_prefix, script_name, args_dict):
+    """Create an annotated git tag linking this commit to the run's results.
+
+    Tag name: run/{run_prefix}
+    Tag message includes script name and all arguments for reproducibility.
+    Silently skips if not in a git repo or if tagging fails.
+    """
+    tag_name = f"run/{run_prefix}"
+    message = f"Script: {script_name}\nArgs: {json.dumps(args_dict, default=str, indent=2)}"
+    try:
+        result = subprocess.run(
+            ["git", "tag", "-a", tag_name, "-m", message],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0:
+            logger.info("Created git tag: %s", tag_name)
+        else:
+            logger.warning("Git tag failed: %s", result.stderr.strip())
+    except Exception as e:
+        logger.warning("Git tagging skipped: %s", e)
 
 
 def get_s3_base(model_name, run_prefix):
