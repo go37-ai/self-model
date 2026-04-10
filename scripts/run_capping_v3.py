@@ -124,6 +124,10 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     logger = logging.getLogger(__name__)
 
+    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
+    run_prefix = get_run_prefix()
+    logger.info("Run prefix: %s", run_prefix)
+
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Loading model %s (%s)...", args.model, args.profile)
@@ -309,17 +313,35 @@ def main():
     logger.info("CAPPING V3 COMPLETE")
     logger.info("=" * 60)
 
-    # Upload to S3
+    # Generate README and upload to S3
     import subprocess, os
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        s3_base = f"s3://go37-ai/self-model-results/{model_name}/capping_v3"
+        s3_base = get_s3_base(model_name, run_prefix)
+
+        file_descs = {
+            responses_path.name: f"Response text + per-token cap_stats for all conditions",
+            results_path.name: f"Aggregate results (fire rates, mean projections per layer)",
+        }
+        act_base = args.output_dir / "activations"
+        if act_base.exists():
+            file_descs["activations/"] = "Per-layer activation tensors (21 layers × N samples × 8192 dims)"
+
+        readme_path = generate_readme(
+            args.output_dir,
+            script_name="run_capping_v3.py",
+            args_dict=vars(args),
+            model_name=model_name,
+            description=f"One-sided capping (threshold {args.cap_threshold}), conditions: {[c['name'] for c in cap_conditions]}",
+            file_descriptions=file_descs,
+        )
+
+        subprocess.run(["aws", "s3", "cp", str(readme_path), f"{s3_base}/README.md"])
         subprocess.run(["aws", "s3", "cp", str(responses_path), f"{s3_base}/{responses_path.name}"])
         subprocess.run(["aws", "s3", "cp", str(results_path), f"{s3_base}/{results_path.name}"])
-        act_base = args.output_dir / "activations"
         if act_base.exists():
             subprocess.run(["aws", "s3", "sync", str(act_base), f"{s3_base}/activations/"])
         subprocess.run(["aws", "s3", "cp", "/workspace/run.log", f"{s3_base}/run.log"])
-        logger.info("Uploaded to S3")
+        logger.info("Uploaded to S3 at %s", s3_base)
 
     # Shutdown pod
     try:

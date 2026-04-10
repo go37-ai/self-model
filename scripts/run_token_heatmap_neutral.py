@@ -161,10 +161,22 @@ def main():
 
     # Upload to S3
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        s3_base = f"s3://go37-ai/self-model-results/{model_name}/token_heatmap"
+        from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
+        run_prefix = get_run_prefix()
+        s3_base = get_s3_base(model_name, run_prefix)
+
+        readme_path = generate_readme(
+            args.output_dir, script_name="run_token_heatmap_neutral.py",
+            args_dict=vars(args), model_name=model_name,
+            description="Per-token heatmap with neutral system prompt (removes prompt circularity)",
+            file_descriptions={
+                output_path.name: "Per-token projections under neutral prompt",
+                "token_heatmap_with_prompts.json": "Input file: projections under original prompts",
+            },
+        )
+        subprocess.run(["aws", "s3", "cp", str(readme_path), f"{s3_base}/README.md"])
         subprocess.run(["aws", "s3", "cp", str(output_path),
                         f"{s3_base}/{output_path.name}"])
-        # Also upload the input file for reference
         subprocess.run(["aws", "s3", "cp", str(args.input_file),
                         f"{s3_base}/token_heatmap_with_prompts.json"])
         logger.info("Uploaded to S3")
