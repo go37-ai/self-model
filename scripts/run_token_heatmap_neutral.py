@@ -107,6 +107,11 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base, tag_run
+    run_prefix = get_run_prefix()
+    logger.info("Run prefix: %s", run_prefix)
+    tag_run(run_prefix, "run_token_heatmap_neutral.py", vars(args))
+
     # Load previous results for response texts
     with open(args.input_file) as f:
         prev_data = json.load(f)
@@ -161,8 +166,6 @@ def main():
 
     # Upload to S3
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
-        run_prefix = get_run_prefix()
         s3_base = get_s3_base(model_name, run_prefix)
 
         readme_path = generate_readme(

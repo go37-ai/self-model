@@ -124,9 +124,10 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     logger = logging.getLogger(__name__)
 
-    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
+    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base, tag_run
     run_prefix = get_run_prefix()
     logger.info("Run prefix: %s", run_prefix)
+    tag_run(run_prefix, "run_capping_v3.py", vars(args))
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 

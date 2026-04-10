@@ -77,6 +77,11 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base, tag_run
+    run_prefix = get_run_prefix()
+    logger.info("Run prefix: %s", run_prefix)
+    tag_run(run_prefix, "run_logit_lens.py", vars(args))
+
     logger.info("Loading model %s (%s)...", args.model, args.profile)
     model, tokenizer, model_config = load_model_and_tokenizer(args.model, args.profile)
     model_name = model_config["name"].replace("/", "_")
@@ -120,8 +125,6 @@ def main():
     # Upload to S3
     import subprocess, os
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
-        run_prefix = get_run_prefix()
         s3_base = get_s3_base(model_name, run_prefix)
 
         readme_path = generate_readme(
