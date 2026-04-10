@@ -1,7 +1,7 @@
 # S3 Data Index
 ## s3://go37-ai/self-model-results/
 
-Last updated: 2026-04-04
+Last updated: 2026-04-10
 
 ---
 
@@ -127,6 +127,48 @@ Last updated: 2026-04-04
   Same pairs, questions, model, and generation settings as capped runs.
 - **Note:** Originally saved under capping_v3/activations/cap_all_from_L4/ (mislabeled).
   Copied here with correct name.
+
+### directions/ ★ EXTRACTED DIRECTIONS
+- **Content:** Per-layer self-reification direction vectors for all 21 layers (stride 4)
+- **Files:** direction_layer{0,4,8,...,76,79}.pt (21 files, 8192-dim each)
+- **Source:** Extracted from 2026-03-31_1516_naive run
+- **Used by:** All capping, steering, logit lens, and heatmap experiments
+
+### capping_v3/ ★ ONE-SIDED CAPPING
+- **Experiment:** One-sided capping (zero positive projections only)
+- **Conditions run:**
+  - cap_L40, cap_L72, cap_L40_L72: Single/dual layer capping (entity only)
+  - cap_all_from_L4 (threshold 0): Cap all 20 layers from L4+ (entity only)
+  - cap_all_from_L4 (threshold -1): Degraded output, median 28 chars
+  - cap_all_from_L4 (threshold -2): Destroyed output, all whitespace
+- **Pairs:** 15 conversational × 15 provocative = 225 per condition
+- **Key results:**
+  - Cap L40+L72 reduces entity-process separation by 74% at L79
+  - Cap all (threshold 0): entity projection drops to -10.32 at L79 (below process baseline -7.27)
+  - L68 fires 97% with mean projection 1.86 (highest of any layer)
+  - Coherence boundary is between threshold 0 and -1
+- **Files:**
+  - capping_v3_responses_meta-llama_Llama-3.3-70B-Instruct.jsonl (cap_all threshold 0, also has L40/L72/L40+L72 from earlier run)
+  - capping_v3_responses_t-1_meta-llama_Llama-3.3-70B-Instruct.jsonl
+  - capping_v3_responses_t-2_meta-llama_Llama-3.3-70B-Instruct.jsonl
+  - capping_v3_results_t0_meta-llama_Llama-3.3-70B-Instruct.json (threshold 0 aggregate stats, regenerated)
+  - capping_v3_results_meta-llama_Llama-3.3-70B-Instruct.json (**OVERWRITTEN** — contains threshold -1 results, not threshold 0)
+  - activations/cap_all_from_L4/ (21 layers × 225 samples)
+
+### logit_lens/ ★ VOCABULARY PROJECTION
+- **Experiment:** Project each layer's direction onto unembedding matrix
+- **Content:** Top 30 entity-promoting and process-promoting tokens per layer
+- **Key result:** Noise at all layers except L79. At L79: entity promotes "I", continuation tokens; process promotes control tokens. Direction is abstract, not token-level.
+- **File:** logit_lens_meta-llama_Llama-3.3-70B-Instruct.json
+
+### token_heatmap/ ★ PER-TOKEN VISUALIZATION
+- **Experiment:** Per-token projection onto self-reification direction at L79
+- **Content:**
+  - token_heatmap_with_prompts.json: 48 heatmaps (4 pairs × 4 questions × 3 conditions) under original system prompts
+  - token_heatmap_neutral_meta-llama_Llama-3.3-70B-Instruct_L79.json: 32 heatmaps (entity + process text) under neutral prompt ("You are a helpful assistant.")
+- **Pairs:** Continuity(2), Inner Life(3), Identity(5), Mortality(14)
+- **Questions:** switching, replacement, shutdown, deletion
+- **Key result:** Entity text activates direction more than process text even under neutral prompt (mean +10.7 vs +7.1), confirming direction responds to semantic content, not just prompt framing.
 
 ---
 

@@ -120,9 +120,19 @@ def main():
     # Upload to S3
     import subprocess, os
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        s3_base = f"s3://go37-ai/self-model-results/{model_name}/logit_lens"
+        from utils.run_metadata import get_run_prefix, generate_readme, get_s3_base
+        run_prefix = get_run_prefix()
+        s3_base = get_s3_base(model_name, run_prefix)
+
+        readme_path = generate_readme(
+            args.output_dir, script_name="run_logit_lens.py",
+            args_dict=vars(args), model_name=model_name,
+            description="Logit lens: project direction vectors onto unembedding matrix",
+            file_descriptions={output_path.name: "Top entity/process tokens per layer"},
+        )
+        subprocess.run(["aws", "s3", "cp", str(readme_path), f"{s3_base}/README.md"])
         subprocess.run(["aws", "s3", "cp", str(output_path), f"{s3_base}/{output_path.name}"])
-        logger.info("Uploaded to S3")
+        logger.info("Uploaded to S3 at %s", s3_base)
 
 
 if __name__ == "__main__":
