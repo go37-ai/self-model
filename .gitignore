@@ -21,9 +21,11 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Tensor files (all results go to S3)
+# Tensor files (all results go to S3, never commit to git)
 *.pt
 *.npy
+data/results/**/activations/
+data/results/**/extraction.log
 
 # Model weights (never commit these)
 *.bin
@@ -32,3 +34,19 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Archives (e.g., arXiv submission bundles)
+*.tar.gz
+*.tgz
+*.zip
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
