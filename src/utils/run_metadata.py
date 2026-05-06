@@ -104,3 +104,56 @@ def get_s3_base(model_name, run_prefix):
     Returns: s3://go37-ai/self-model-results/{model_name}/{run_prefix}/
     """
     return f"s3://go37-ai/self-model-results/{model_name}/{run_prefix}"
+
+
+def s3_upload(local_path, s3_path, recursive=False):
+    """Upload to S3 and return True on success, False on failure.
+
+    Wraps subprocess.run with returncode check so callers can branch on the
+    result (e.g., skip pod shutdown if any upload failed).
+    """
+    cmd = ["aws", "s3", "cp"]
+    if recursive:
+        cmd.append("--recursive")
+    cmd.extend([str(local_path), str(s3_path)])
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        logger.error("S3 upload failed [%s -> %s]: %s",
+                     local_path, s3_path, r.stderr.strip())
+        return False
+    return True
+
+
+def conditional_shutdown(upload_success: bool, keep_alive: bool = False) -> None:
+    """Stop the RunPod instance only if all uploads succeeded and keep_alive=False.
+
+    On failure or when keep_alive is True, log instructions for manual recovery
+    and leave the pod running. The pod's local /workspace/run.log survives so
+    you can ssh in, scp the log, and inspect intermediate state before manual
+    `runpodctl stop pod $RUNPOD_POD_ID`.
+
+    Args:
+        upload_success: True iff every required S3 upload succeeded.
+        keep_alive: Force-skip shutdown regardless of upload outcome (e.g.
+                    --no-shutdown debug flag).
+    """
+    if keep_alive:
+        logger.warning("keep_alive=True — skipping pod shutdown. "
+                       "Manual stop: runpodctl stop pod $RUNPOD_POD_ID")
+        return
+    if not upload_success:
+        logger.error("Upload failed — keeping pod alive so you can ssh in and recover. "
+                     "Pod: scp /workspace/run.log <local>; then "
+                     "runpodctl stop pod $RUNPOD_POD_ID when done.")
+        return
+    import os
+    try:
+        logger.info("All uploads OK — shutting down pod ...")
+        os.system(
+            ". /etc/rp_environment 2>/dev/null && "
+            "mkdir -p /root/.runpod && touch /root/.runpod/config.toml && "
+            "runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null; "
+            "runpodctl stop pod $RUNPOD_POD_ID 2>&1"
+        )
+    except Exception as e:
+        logger.warning("Auto-shutdown failed: %s — pod left running", e)

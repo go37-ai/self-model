@@ -47,6 +47,11 @@ Thumbs.db
 *.log
 *.out
 *.toc
+
+# Generated paper artifacts (figures regenerated from scripts; tex from pandoc; pdf from pdflatex)
+*.png
+*.pdf
+*.tex
 *.synctex.gz
 *.fdb_latexmk
 *.fls
