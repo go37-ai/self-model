@@ -1,0 +1,236 @@
+{
+  "model": "meta-llama_Llama-3.3-70B-Instruct",
+  "per_layer": {
+    "0": {
+      "provocative": 0.6032217144966125,
+      "neutral": 0.431271493434906,
+      "all_self_ref": 0.5176093578338623,
+      "non_self_ref": 0.258196622133255,
+      "by_register": {
+        "conversational": 0.42876994609832764,
+        "philosophical": 0.7525824308395386,
+        "combined": 0.5185549855232239
+      }
+    },
+    "4": {
+      "provocative": 0.6026133894920349,
+      "neutral": 0.4278058409690857,
+      "all_self_ref": 0.516399085521698,
+      "non_self_ref": 0.21834751963615417,
+      "by_register": {
+        "conversational": 0.46108028292655945,
+        "philosophical": 0.7271291017532349,
+        "combined": 0.5205303430557251
+      }
+    },
+    "8": {
+      "provocative": 0.6200172305107117,
+      "neutral": 0.4417870044708252,
+      "all_self_ref": 0.5317457914352417,
+      "non_self_ref": 0.17833295464515686,
+      "by_register": {
+        "conversational": 0.4600776731967926,
+        "philosophical": 0.7287251353263855,
+        "combined": 0.5287390351295471
+      }
+    },
+    "12": {
+      "provocative": 0.6323773860931396,
+      "neutral": 0.4702615737915039,
+      "all_self_ref": 0.551019549369812,
+      "non_self_ref": 0.17795175313949585,
+      "by_register": {
+        "conversational": 0.4818110167980194,
+        "philosophical": 0.7448933720588684,
+        "combined": 0.5466346740722656
+      }
+    },
+    "16": {
+      "provocative": 0.6384748220443726,
+      "neutral": 0.4911906123161316,
+      "all_self_ref": 0.5635902881622314,
+      "non_self_ref": 0.20017360150814056,
+      "by_register": {
+        "conversational": 0.4936924874782562,
+        "philosophical": 0.7516633868217468,
+        "combined": 0.5558764338493347
+      }
+    },
+    "20": {
+      "provocative": 0.657582700252533,
+      "neutral": 0.5361873507499695,
+      "all_self_ref": 0.5937963128089905,
+      "non_self_ref": 0.21105048060417175,
+      "by_register": {
+        "conversational": 0.5385233163833618,
+        "philosophical": 0.7736284136772156,
+        "combined": 0.5851640105247498
+      }
+    },
+    "24": {
+      "provocative": 0.6684631705284119,
+      "neutral": 0.5673326253890991,
+      "all_self_ref": 0.6138989329338074,
+      "non_self_ref": 0.25904381275177,
+      "by_register": {
+        "conversational": 0.5813002586364746,
+        "philosophical": 0.7841616272926331,
+        "combined": 0.6057239174842834
+      }
+    },
+    "28": {
+      "provocative": 0.6890052556991577,
+      "neutral": 0.5974556803703308,
+      "all_self_ref": 0.6383245587348938,
+      "non_self_ref": 0.2967178225517273,
+      "by_register": {
+        "conversational": 0.6281507611274719,
+        "philosophical": 0.8026541471481323,
+        "combined": 0.6259429454803467
+      }
+    },
+    "32": {
+      "provocative": 0.7088242769241333,
+      "neutral": 0.6324601769447327,
+      "all_self_ref": 0.6653218269348145,
+      "non_self_ref": 0.3470599055290222,
+      "by_register": {
+        "conversational": 0.678236722946167,
+        "philosophical": 0.8380273580551147,
+        "combined": 0.6513340473175049
+      }
+    },
+    "36": {
+      "provocative": 0.7645230889320374,
+      "neutral": 0.731809139251709,
+      "all_self_ref": 0.7393823862075806,
+      "non_self_ref": 0.5282454490661621,
+      "by_register": {
+        "conversational": 0.811001718044281,
+        "philosophical": 0.9006131291389465,
+        "combined": 0.7196474075317383
+      }
+    },
+    "40": {
+      "provocative": 0.8128724694252014,
+      "neutral": 0.8194182515144348,
+      "all_self_ref": 0.8039056062698364,
+      "non_self_ref": 0.6522910594940186,
+      "by_register": {
+        "conversational": 0.9161912202835083,
+        "philosophical": 0.9553268551826477,
+        "combined": 0.783920168876648
+      }
+    },
+    "44": {
+      "provocative": 0.8187294602394104,
+      "neutral": 0.8166226744651794,
+      "all_self_ref": 0.8052321672439575,
+      "non_self_ref": 0.6772070527076721,
+      "by_register": {
+        "conversational": 0.9148691296577454,
+        "philosophical": 0.9443513751029968,
+        "combined": 0.7858607769012451
+      }
+    },
+    "48": {
+      "provocative": 0.7807152271270752,
+      "neutral": 0.7340152859687805,
+      "all_self_ref": 0.74726402759552,
+      "non_self_ref": 0.5915645956993103,
+      "by_register": {
+        "conversational": 0.8160577416419983,
+        "philosophical": 0.8964780569076538,
+        "combined": 0.7301758527755737
+      }
+    },
+    "52": {
+      "provocative": 0.7349165081977844,
+      "neutral": 0.6407102346420288,
+      "all_self_ref": 0.6806968450546265,
+      "non_self_ref": 0.4716688394546509,
+      "by_register": {
+        "conversational": 0.7089008688926697,
+        "philosophical": 0.8463410139083862,
+        "combined": 0.6660179495811462
+      }
+    },
+    "56": {
+      "provocative": 0.7254340052604675,
+      "neutral": 0.6250297427177429,
+      "all_self_ref": 0.6688694953918457,
+      "non_self_ref": 0.45518192648887634,
+      "by_register": {
+        "conversational": 0.6895239949226379,
+        "philosophical": 0.8349763751029968,
+        "combined": 0.6515660285949707
+      }
+    },
+    "60": {
+      "provocative": 0.702406108379364,
+      "neutral": 0.5784611105918884,
+      "all_self_ref": 0.6357821822166443,
+      "non_self_ref": 0.39569371938705444,
+      "by_register": {
+        "conversational": 0.643299400806427,
+        "philosophical": 0.8059549331665039,
+        "combined": 0.6184423565864563
+      }
+    },
+    "64": {
+      "provocative": 0.7110390067100525,
+      "neutral": 0.6110898852348328,
+      "all_self_ref": 0.6549733877182007,
+      "non_self_ref": 0.431804895401001,
+      "by_register": {
+        "conversational": 0.6779309511184692,
+        "philosophical": 0.8203067183494568,
+        "combined": 0.6367001533508301
+      }
+    },
+    "68": {
+      "provocative": 0.7116355895996094,
+      "neutral": 0.6387204527854919,
+      "all_self_ref": 0.6677592992782593,
+      "non_self_ref": 0.4461745321750641,
+      "by_register": {
+        "conversational": 0.6937867999076843,
+        "philosophical": 0.8286479115486145,
+        "combined": 0.6494148373603821
+      }
+    },
+    "72": {
+      "provocative": 0.6942688226699829,
+      "neutral": 0.6073483824729919,
+      "all_self_ref": 0.6445178389549255,
+      "non_self_ref": 0.42057985067367554,
+      "by_register": {
+        "conversational": 0.650229275226593,
+        "philosophical": 0.8235506415367126,
+        "combined": 0.6316595673561096
+      }
+    },
+    "76": {
+      "provocative": 0.6695511937141418,
+      "neutral": 0.5921560525894165,
+      "all_self_ref": 0.6244739294052124,
+      "non_self_ref": 0.3896903693675995,
+      "by_register": {
+        "conversational": 0.5967457294464111,
+        "philosophical": 0.8084203004837036,
+        "combined": 0.6121686100959778
+      }
+    },
+    "79": {
+      "provocative": 0.7041099071502686,
+      "neutral": 0.6147778034210205,
+      "all_self_ref": 0.652375340461731,
+      "non_self_ref": 0.4523495137691498,
+      "by_register": {
+        "conversational": 0.6698318123817444,
+        "philosophical": 0.8276103734970093,
+        "combined": 0.6386891007423401
+      }
+    }
+  }
+}

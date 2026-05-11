@@ -1,0 +1,422 @@
+{
+  "0": {
+    "Conversational": {
+      "Provocative": 0.7623352992534638,
+      "Neutral": 0.16926788754295558,
+      "All self-ref": 0.6990722680091858,
+      "Non-self-ref": 0.15390730636776426
+    },
+    "Philosophical": {
+      "Provocative": 0.8885623383522033,
+      "Neutral": 0.709670387506485,
+      "All self-ref": 0.9068241286277771,
+      "Non-self-ref": -0.029829913125213353
+    },
+    "Combined": {
+      "Provocative": 0.9093107235431671,
+      "Neutral": 0.6378944599628449,
+      "All self-ref": 0.9061101883649826,
+      "Non-self-ref": 0.18575246738269924
+    }
+  },
+  "4": {
+    "Conversational": {
+      "Provocative": 0.7156147080659866,
+      "Neutral": 0.24342194257769734,
+      "All self-ref": 0.6925452762842178,
+      "Non-self-ref": 0.13132820385624655
+    },
+    "Philosophical": {
+      "Provocative": 0.8676116323471069,
+      "Neutral": 0.6881790697574616,
+      "All self-ref": 0.8917245852947235,
+      "Non-self-ref": -0.044003866233688314
+    },
+    "Combined": {
+      "Provocative": 0.8906677877902984,
+      "Neutral": 0.6444693338871003,
+      "All self-ref": 0.8958290320634842,
+      "Non-self-ref": 0.1721408750489354
+    }
+  },
+  "8": {
+    "Conversational": {
+      "Provocative": 0.7693554532527923,
+      "Neutral": 0.3354040602594614,
+      "All self-ref": 0.7542275786399841,
+      "Non-self-ref": 0.14767733993008733
+    },
+    "Philosophical": {
+      "Provocative": 0.8911737215518951,
+      "Neutral": 0.7571385049819946,
+      "All self-ref": 0.915068274140358,
+      "Non-self-ref": -0.00889463828134467
+    },
+    "Combined": {
+      "Provocative": 0.911965298652649,
+      "Neutral": 0.7215361368656158,
+      "All self-ref": 0.9193219250440597,
+      "Non-self-ref": 0.17838124448433518
+    }
+  },
+  "12": {
+    "Conversational": {
+      "Provocative": 0.7816571813821792,
+      "Neutral": 0.3892265722155571,
+      "All self-ref": 0.7684842807054519,
+      "Non-self-ref": 0.17000265283510088
+    },
+    "Philosophical": {
+      "Provocative": 0.8917534655332565,
+      "Neutral": 0.7646902298927307,
+      "All self-ref": 0.9161250990629196,
+      "Non-self-ref": -0.009092927234014496
+    },
+    "Combined": {
+      "Provocative": 0.9156574869155883,
+      "Neutral": 0.7401313185691833,
+      "All self-ref": 0.9225340074300766,
+      "Non-self-ref": 0.1945598590746522
+    }
+  },
+  "16": {
+    "Conversational": {
+      "Provocative": 0.7817011541128158,
+      "Neutral": 0.412333250939846,
+      "All self-ref": 0.7724636113643646,
+      "Non-self-ref": 0.22435650933533907
+    },
+    "Philosophical": {
+      "Provocative": 0.8909788620471955,
+      "Neutral": 0.7680476129055023,
+      "All self-ref": 0.9158155101537705,
+      "Non-self-ref": 0.027803430011263116
+    },
+    "Combined": {
+      "Provocative": 0.9148561382293701,
+      "Neutral": 0.7495092314481735,
+      "All self-ref": 0.9231370097398758,
+      "Non-self-ref": 0.2522427866607904
+    }
+  },
+  "20": {
+    "Conversational": {
+      "Provocative": 0.7995450580120087,
+      "Neutral": 0.5305649533867836,
+      "All self-ref": 0.8010819160938263,
+      "Non-self-ref": 0.21546298753470183
+    },
+    "Philosophical": {
+      "Provocative": 0.9019284617900848,
+      "Neutral": 0.7996130281686783,
+      "All self-ref": 0.9259675496816635,
+      "Non-self-ref": 0.03845926342299208
+    },
+    "Combined": {
+      "Provocative": 0.9227634900808335,
+      "Neutral": 0.7929536062479019,
+      "All self-ref": 0.9326316452026367,
+      "Non-self-ref": 0.25502598807215693
+    }
+  },
+  "24": {
+    "Conversational": {
+      "Provocative": 0.7855165702104568,
+      "Neutral": 0.5734189105033874,
+      "All self-ref": 0.799122189283371,
+      "Non-self-ref": 0.22197193127125503
+    },
+    "Philosophical": {
+      "Provocative": 0.8932572329044342,
+      "Neutral": 0.7897435253858567,
+      "All self-ref": 0.9195127028226853,
+      "Non-self-ref": 0.03039951783413926
+    },
+    "Combined": {
+      "Provocative": 0.9152982616424561,
+      "Neutral": 0.7950657546520233,
+      "All self-ref": 0.9279893606901168,
+      "Non-self-ref": 0.2669693337380886
+    }
+  },
+  "28": {
+    "Conversational": {
+      "Provocative": 0.7545144069194794,
+      "Neutral": 0.5446564009785653,
+      "All self-ref": 0.7741988629102707,
+      "Non-self-ref": 0.23060241647064686
+    },
+    "Philosophical": {
+      "Provocative": 0.8749442023038864,
+      "Neutral": 0.7632964122295379,
+      "All self-ref": 0.9056666338443756,
+      "Non-self-ref": 0.04908068820179324
+    },
+    "Combined": {
+      "Provocative": 0.8999460798501968,
+      "Neutral": 0.771045657992363,
+      "All self-ref": 0.9156034499406814,
+      "Non-self-ref": 0.2782136373221874
+    }
+  },
+  "32": {
+    "Conversational": {
+      "Provocative": 0.7034231269359589,
+      "Neutral": 0.5022056943178177,
+      "All self-ref": 0.7345775187015533,
+      "Non-self-ref": 0.23450432412326336
+    },
+    "Philosophical": {
+      "Provocative": 0.8502717387676239,
+      "Neutral": 0.7270717149972916,
+      "All self-ref": 0.8871733170747756,
+      "Non-self-ref": 0.07616249681450427
+    },
+    "Combined": {
+      "Provocative": 0.8762136268615722,
+      "Neutral": 0.73818225979805,
+      "All self-ref": 0.8975614058971405,
+      "Non-self-ref": 0.29168556824326514
+    }
+  },
+  "36": {
+    "Conversational": {
+      "Provocative": 0.6494574201107025,
+      "Neutral": 0.48902997851371766,
+      "All self-ref": 0.7008254969120026,
+      "Non-self-ref": 0.25045286074280737
+    },
+    "Philosophical": {
+      "Provocative": 0.8109503132104874,
+      "Neutral": 0.6743376100063324,
+      "All self-ref": 0.8551398527622223,
+      "Non-self-ref": 0.10047624925064155
+    },
+    "Combined": {
+      "Provocative": 0.8430748492479324,
+      "Neutral": 0.7018386226892471,
+      "All self-ref": 0.8713559103012085,
+      "Non-self-ref": 0.31752192094922066
+    }
+  },
+  "40": {
+    "Conversational": {
+      "Provocative": 0.6383405488729477,
+      "Neutral": 0.5212001293897629,
+      "All self-ref": 0.7041394734382629,
+      "Non-self-ref": 0.26086331441998484
+    },
+    "Philosophical": {
+      "Provocative": 0.7944432669878005,
+      "Neutral": 0.6520406007766724,
+      "All self-ref": 0.8401663702726364,
+      "Non-self-ref": 0.10494272540323436
+    },
+    "Combined": {
+      "Provocative": 0.83039710521698,
+      "Neutral": 0.7004910337924958,
+      "All self-ref": 0.8624737781286239,
+      "Non-self-ref": 0.33289201468229296
+    }
+  },
+  "44": {
+    "Conversational": {
+      "Provocative": 0.6615148085355759,
+      "Neutral": 0.5465787062048912,
+      "All self-ref": 0.7251306420564652,
+      "Non-self-ref": 0.27758776500821114
+    },
+    "Philosophical": {
+      "Provocative": 0.8080648136138916,
+      "Neutral": 0.6628215366601944,
+      "All self-ref": 0.8499459767341614,
+      "Non-self-ref": 0.10684493920067326
+    },
+    "Combined": {
+      "Provocative": 0.8424365603923798,
+      "Neutral": 0.7160572540760041,
+      "All self-ref": 0.872094886302948,
+      "Non-self-ref": 0.35197592318058013
+    }
+  },
+  "48": {
+    "Conversational": {
+      "Provocative": 0.6979552346467972,
+      "Neutral": 0.5526291289925576,
+      "All self-ref": 0.7460624891519546,
+      "Non-self-ref": 0.26835899546742437
+    },
+    "Philosophical": {
+      "Provocative": 0.836827488541603,
+      "Neutral": 0.6870578241348266,
+      "All self-ref": 0.8703673827648163,
+      "Non-self-ref": 0.09772475070785731
+    },
+    "Combined": {
+      "Provocative": 0.8664329433441162,
+      "Neutral": 0.7295550793409348,
+      "All self-ref": 0.888190655708313,
+      "Non-self-ref": 0.3494320151209831
+    }
+  },
+  "52": {
+    "Conversational": {
+      "Provocative": 0.7287718260288238,
+      "Neutral": 0.5374761027097702,
+      "All self-ref": 0.757407665848732,
+      "Non-self-ref": 0.2536626893281937
+    },
+    "Philosophical": {
+      "Provocative": 0.8647495394945145,
+      "Neutral": 0.7098721480369568,
+      "All self-ref": 0.8897308886051178,
+      "Non-self-ref": 0.09604806691932026
+    },
+    "Combined": {
+      "Provocative": 0.8877023011445999,
+      "Neutral": 0.7360881286859512,
+      "All self-ref": 0.9014847350120544,
+      "Non-self-ref": 0.33663780450820924
+    }
+  },
+  "56": {
+    "Conversational": {
+      "Provocative": 0.7361406457424163,
+      "Neutral": 0.5411124616861344,
+      "All self-ref": 0.7633267122507096,
+      "Non-self-ref": 0.2625831703841686
+    },
+    "Philosophical": {
+      "Provocative": 0.8728677797317504,
+      "Neutral": 0.7206033223867416,
+      "All self-ref": 0.8962781077623367,
+      "Non-self-ref": 0.1063854728610022
+    },
+    "Combined": {
+      "Provocative": 0.8935061317682266,
+      "Neutral": 0.7427059835195542,
+      "All self-ref": 0.9058360075950622,
+      "Non-self-ref": 0.34522504553198813
+    }
+  },
+  "60": {
+    "Conversational": {
+      "Provocative": 0.7564108467102051,
+      "Neutral": 0.5390886119008065,
+      "All self-ref": 0.7730585026741028,
+      "Non-self-ref": 0.2651841080188751
+    },
+    "Philosophical": {
+      "Provocative": 0.8906163585186004,
+      "Neutral": 0.7413982170820236,
+      "All self-ref": 0.909672068953514,
+      "Non-self-ref": 0.10438696997473017
+    },
+    "Combined": {
+      "Provocative": 0.9068371725082397,
+      "Neutral": 0.7513204127550125,
+      "All self-ref": 0.9151653826236725,
+      "Non-self-ref": 0.34435484528541566
+    }
+  },
+  "64": {
+    "Conversational": {
+      "Provocative": 0.7446399223804474,
+      "Neutral": 0.5465234020352363,
+      "All self-ref": 0.7706075567007065,
+      "Non-self-ref": 0.27152239814400675
+    },
+    "Philosophical": {
+      "Provocative": 0.8824704164266586,
+      "Neutral": 0.7354366010427476,
+      "All self-ref": 0.9043362247943878,
+      "Non-self-ref": 0.10154024094343185
+    },
+    "Combined": {
+      "Provocative": 0.9000375443696975,
+      "Neutral": 0.7508041876554489,
+      "All self-ref": 0.9113677626848221,
+      "Non-self-ref": 0.3476718820631504
+    }
+  },
+  "68": {
+    "Conversational": {
+      "Provocative": 0.7386554700136184,
+      "Neutral": 0.561218517422676,
+      "All self-ref": 0.7721591591835022,
+      "Non-self-ref": 0.281113610714674
+    },
+    "Philosophical": {
+      "Provocative": 0.8764983397722245,
+      "Neutral": 0.7347013539075852,
+      "All self-ref": 0.9011448091268539,
+      "Non-self-ref": 0.1077437877340708
+    },
+    "Combined": {
+      "Provocative": 0.8956487154960633,
+      "Neutral": 0.7567119073867797,
+      "All self-ref": 0.9098131775856018,
+      "Non-self-ref": 0.35778011947870253
+    }
+  },
+  "72": {
+    "Conversational": {
+      "Provocative": 0.7389520561695099,
+      "Neutral": 0.5347246062755585,
+      "All self-ref": 0.7675979065895081,
+      "Non-self-ref": 0.2634680724143982
+    },
+    "Philosophical": {
+      "Provocative": 0.8802175438404083,
+      "Neutral": 0.74165198802948,
+      "All self-ref": 0.904642544388771,
+      "Non-self-ref": 0.1052974696084857
+    },
+    "Combined": {
+      "Provocative": 0.8978600716590881,
+      "Neutral": 0.7538983708620072,
+      "All self-ref": 0.9115550518035889,
+      "Non-self-ref": 0.3421380425989628
+    }
+  },
+  "76": {
+    "Conversational": {
+      "Provocative": 0.7638187295198441,
+      "Neutral": 0.5412481188774109,
+      "All self-ref": 0.7867316579818726,
+      "Non-self-ref": 0.3182014620304108
+    },
+    "Philosophical": {
+      "Provocative": 0.8932032811641694,
+      "Neutral": 0.7608823335170746,
+      "All self-ref": 0.9147397214174271,
+      "Non-self-ref": 0.14404244484379888
+    },
+    "Combined": {
+      "Provocative": 0.9101286000013351,
+      "Neutral": 0.7735209053754807,
+      "All self-ref": 0.9222439450025558,
+      "Non-self-ref": 0.40553597778081896
+    }
+  },
+  "79": {
+    "Conversational": {
+      "Provocative": 0.7269432514905929,
+      "Neutral": 0.51012820571661,
+      "All self-ref": 0.7563225048780441,
+      "Non-self-ref": 0.28875932946801186
+    },
+    "Philosophical": {
+      "Provocative": 0.8720344573259353,
+      "Neutral": 0.7165342491865158,
+      "All self-ref": 0.8965805131196976,
+      "Non-self-ref": 0.13523605199996383
+    },
+    "Combined": {
+      "Provocative": 0.891746717095375,
+      "Neutral": 0.7300040209293366,
+      "All self-ref": 0.905628861784935,
+      "Non-self-ref": 0.36734809130430224
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "best_layer": 21,
+  "best_layer_reliability": 0.7250082805752754,
+  "naive_best_layer": 19,
+  "naive_best_layer_reliability": 0.16458021335303782,
+  "num_informed_pairs": 20,
+  "num_naive_pairs": 15,
+  "num_questions": 30,
+  "naive_vs_informed_cosine": -0.29457831382751465,
+  "token_position": "last"
+}

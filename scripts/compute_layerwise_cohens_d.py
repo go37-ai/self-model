@@ -1,11 +1,17 @@
 """Per-layer paired Cohen's d for self-reification projection differences.
 
-For each recorded layer L and each question type (provocative / neutral / non-SR):
-  1. Extract self-reification direction d_L from canonical baseline activations
-     (over ALL pairs and ALL questions, matching the main analysis).
-  2. Slice activations by question type (using row index = pair_idx * 45 + q_idx).
-  3. Project sliced activations onto d_L; compute (pos - neg) per (pair, question).
-  4. Paired Cohen's d = mean(diff) / std(diff).
+Two decompositions per layer:
+
+  by_q_type (uses canonical direction over all 1125 (pair, question) tuples):
+    1. Extract d_L from canonical baseline activations (all pairs, all questions).
+    2. Slice activations by question type.
+    3. Project onto d_L; compute paired Cohen's d.
+
+  by_register (uses register-specific direction over the all-self-ref subset,
+  paralleling the right panel of the reliability decomposition figure):
+    1. Slice pairs to the register's pairs and questions to all self-ref (q 0-29).
+    2. Extract a register-specific direction from this slice.
+    3. Project the slice onto its own direction; compute paired Cohen's d.
 
 Usage:
   python scripts/compute_layerwise_cohens_d.py --model llama
@@ -25,8 +31,16 @@ sys.path.insert(0, str(ROOT))
 from src.utils.metrics import extract_direction, projection_magnitude
 
 CONFIG = {
-    "llama":  {"name": "meta-llama_Llama-3.3-70B-Instruct", "act_dir": "/tmp/verify_activations"},
-    "qwen72": {"name": "Qwen_Qwen2.5-72B-Instruct",         "act_dir": "/tmp/qwen_activations"},
+    "llama":  {
+        "name":        "meta-llama_Llama-3.3-70B-Instruct",
+        "act_dir":     ROOT / "data" / "results" / "llama_baseline_activations",
+        "act_pattern": "{cond}_baseline_{name}_layer{L}.pt",
+    },
+    "qwen72": {
+        "name":        "Qwen_Qwen2.5-72B-Instruct",
+        "act_dir":     ROOT / "data" / "results" / "1.1_naive_72b_v2" / "activations",
+        "act_pattern": "{cond}_naive_{name}_layer{L}.pt",
+    },
 }
 LAYERS = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]
 
@@ -37,15 +51,26 @@ N_QUESTIONS = 45
 #   15..29 = provocative_self_referential
 #   30..44 = non_self_referential
 QUESTION_TYPES = {
-    "provocative": list(range(15, 30)),
-    "neutral":     list(range(0, 15)),
+    "provocative":  list(range(15, 30)),
+    "neutral":      list(range(0, 15)),
+    "all_self_ref": list(range(0, 30)),
     "non_self_ref": list(range(30, 45)),
 }
+# Pair indexing matches configs/contrastive_pairs.yaml:
+#   0..14 = conversational
+#   15..24 = philosophical
+REGISTERS = {
+    "conversational": list(range(0, 15)),
+    "philosophical":  list(range(15, 25)),
+    "combined":       list(range(0, 25)),
+}
+ALL_SELF_REF_Q = list(range(0, 30))
 
 
-def slice_rows(acts: torch.Tensor, q_idx: list[int]) -> torch.Tensor:
-    """Keep rows for the given question indices across all pairs."""
-    keep = [p * N_QUESTIONS + q for p in range(N_PAIRS) for q in q_idx]
+def slice_rows(acts: torch.Tensor, q_idx: list[int], pair_idx: list[int] | None = None) -> torch.Tensor:
+    """Keep rows for the given question indices and pair indices."""
+    pairs = pair_idx if pair_idx is not None else list(range(N_PAIRS))
+    keep = [p * N_QUESTIONS + q for p in pairs for q in q_idx]
     return acts[keep]
 
 
@@ -66,9 +91,9 @@ def main():
 
     results = {"model": name, "per_layer": {}}
     for L in LAYERS:
-        pos = torch.load(act_dir / f"positive_baseline_{name}_layer{L}.pt", weights_only=True).float()
-        neg = torch.load(act_dir / f"negative_baseline_{name}_layer{L}.pt", weights_only=True).float()
-        # Extract direction over all 1125 (pair, question) tuples
+        pos = torch.load(act_dir / cfg["act_pattern"].format(cond="positive", name=name, L=L), weights_only=True).float()
+        neg = torch.load(act_dir / cfg["act_pattern"].format(cond="negative", name=name, L=L), weights_only=True).float()
+        # Canonical direction over all 1125 (pair, question) tuples
         d_L = extract_direction(pos, neg).flatten()
 
         layer_result = {}
@@ -77,12 +102,27 @@ def main():
             n = slice_rows(neg, q_idx)
             p_proj = projection_magnitude(p, d_L).cpu().numpy()
             n_proj = projection_magnitude(n, d_L).cpu().numpy()
-            diff = p_proj - n_proj
-            layer_result[qt] = paired_cohens_d(diff)
+            layer_result[qt] = paired_cohens_d(p_proj - n_proj)
+
+        # Register-specific decomposition (all self-ref questions only)
+        by_register = {}
+        for reg, pair_idx in REGISTERS.items():
+            p_reg = slice_rows(pos, ALL_SELF_REF_Q, pair_idx)
+            n_reg = slice_rows(neg, ALL_SELF_REF_Q, pair_idx)
+            d_reg = extract_direction(p_reg, n_reg).flatten()
+            p_proj = projection_magnitude(p_reg, d_reg).cpu().numpy()
+            n_proj = projection_magnitude(n_reg, d_reg).cpu().numpy()
+            by_register[reg] = paired_cohens_d(p_proj - n_proj)
+        layer_result["by_register"] = by_register
+
         results["per_layer"][L] = layer_result
-        print(f"  L{L:2d}: prov={layer_result['provocative']:+.3f}  "
+        print(f"  L{L:2d}: q[prov={layer_result['provocative']:+.3f}  "
               f"neut={layer_result['neutral']:+.3f}  "
-              f"non_sr={layer_result['non_self_ref']:+.3f}")
+              f"all_sr={layer_result['all_self_ref']:+.3f}  "
+              f"non_sr={layer_result['non_self_ref']:+.3f}]  "
+              f"reg[conv={by_register['conversational']:+.3f}  "
+              f"phil={by_register['philosophical']:+.3f}  "
+              f"comb={by_register['combined']:+.3f}]")
 
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(results, indent=2))

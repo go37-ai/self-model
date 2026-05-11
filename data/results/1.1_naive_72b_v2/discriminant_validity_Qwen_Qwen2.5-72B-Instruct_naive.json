@@ -1,0 +1,8 @@
+{
+  "confidence_cosine": -0.19110122323036194,
+  "formality_cosine": -0.2516935467720032,
+  "pronoun_density_correlation": -0.2626163644736693,
+  "assistant_axis_cosine": null,
+  "concerns": [],
+  "is_discriminant": true
+}

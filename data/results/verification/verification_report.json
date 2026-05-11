@@ -1,0 +1,388 @@
+{
+  "llama_reliability": {
+    "model": "Llama 3.3-70B-Instruct",
+    "layer": 20,
+    "table1": {
+      "Conversational": {
+        "Provocative": 0.799545,
+        "Neutral_SR": 0.530565,
+        "Combined_SR": 0.801082,
+        "Non_SR": 0.215463
+      },
+      "Philosophical": {
+        "Provocative": 0.901928,
+        "Neutral_SR": 0.799613,
+        "Combined_SR": 0.925968,
+        "Non_SR": 0.038459
+      },
+      "Combined_pairs": {
+        "Provocative": 0.922763,
+        "Neutral_SR": 0.792954,
+        "Combined_SR": 0.932632,
+        "Non_SR": 0.255026
+      }
+    },
+    "cross_register_cosine_all_q": 0.8212,
+    "cross_register_cosine_self_ref_only": 0.857881,
+    "formality_corrected_reliability_all": 0.835965,
+    "formality_corrected_reliability_self_ref": 0.880621,
+    "original_reliability_all": 0.903631,
+    "original_reliability_self_ref": 0.932632,
+    "paper_comparison": {
+      "Conv x Provocative": {
+        "paper": 0.8,
+        "actual": 0.799545,
+        "diff": -0.000455,
+        "flagged": false
+      },
+      "Conv x Neutral": {
+        "paper": 0.53,
+        "actual": 0.530565,
+        "diff": 0.000565,
+        "flagged": false
+      },
+      "Conv x Combined_SR": {
+        "paper": 0.8,
+        "actual": 0.801082,
+        "diff": 0.001082,
+        "flagged": false
+      },
+      "Conv x Non_SR": {
+        "paper": 0.22,
+        "actual": 0.215463,
+        "diff": -0.004537,
+        "flagged": false
+      },
+      "Phil x Provocative": {
+        "paper": 0.9,
+        "actual": 0.901928,
+        "diff": 0.001928,
+        "flagged": false
+      },
+      "Phil x Neutral": {
+        "paper": 0.8,
+        "actual": 0.799613,
+        "diff": -0.000387,
+        "flagged": false
+      },
+      "Phil x Combined_SR": {
+        "paper": 0.93,
+        "actual": 0.925968,
+        "diff": -0.004032,
+        "flagged": false
+      },
+      "Phil x Non_SR": {
+        "paper": 0.04,
+        "actual": 0.038459,
+        "diff": -0.001541,
+        "flagged": false
+      },
+      "All x Provocative": {
+        "paper": 0.92,
+        "actual": 0.922763,
+        "diff": 0.002763,
+        "flagged": false
+      },
+      "All x Neutral": {
+        "paper": 0.79,
+        "actual": 0.792954,
+        "diff": 0.002954,
+        "flagged": false
+      },
+      "All x Combined_SR (headline 0.93)": {
+        "paper": 0.93,
+        "actual": 0.932632,
+        "diff": 0.002632,
+        "flagged": false
+      },
+      "All x Non_SR": {
+        "paper": 0.26,
+        "actual": 0.255026,
+        "diff": -0.004974,
+        "flagged": false
+      },
+      "cross-register cosine": {
+        "paper": 0.82,
+        "actual": 0.8212,
+        "diff": 0.0012,
+        "flagged": false
+      },
+      "corrected reliability (self-ref)": {
+        "paper": 0.88,
+        "actual": 0.880621,
+        "diff": 0.000621,
+        "flagged": false
+      },
+      "Cohen's d (provocative)": {
+        "paper": 0.66,
+        "actual": 0.657583,
+        "diff": -0.002417,
+        "flagged": false
+      },
+      "Cohen's d (neutral)": {
+        "paper": 0.54,
+        "actual": 0.536187,
+        "diff": -0.003813,
+        "flagged": false
+      },
+      "Cohen's d (non-SR)": {
+        "paper": 0.21,
+        "actual": 0.21105,
+        "diff": 0.00105,
+        "flagged": false
+      }
+    }
+  },
+  "qwen_reliability": {
+    "model": "Qwen 2.5-72B-Instruct",
+    "layer": 60,
+    "table1": {
+      "Conversational": {
+        "Provocative": 0.586852,
+        "Neutral_SR": 0.652482,
+        "Combined_SR": 0.776027,
+        "Non_SR": -0.113086
+      },
+      "Philosophical": {
+        "Provocative": 0.523758,
+        "Neutral_SR": 0.539823,
+        "Combined_SR": 0.681256,
+        "Non_SR": -0.059706
+      },
+      "Combined_pairs": {
+        "Provocative": 0.593403,
+        "Neutral_SR": 0.499307,
+        "Combined_SR": 0.709556,
+        "Non_SR": -0.051704
+      }
+    },
+    "cross_register_cosine_all_q": -0.011451,
+    "cross_register_cosine_self_ref_only": -0.094576,
+    "formality_corrected_reliability_all": 0.572881,
+    "formality_corrected_reliability_self_ref": 0.754843,
+    "original_reliability_all": 0.518918,
+    "original_reliability_self_ref": 0.709556,
+    "paper_comparison": {
+      "Conv x Provocative": {
+        "paper": 0.59,
+        "actual": 0.586852,
+        "diff": -0.003148,
+        "flagged": false
+      },
+      "Conv x Neutral": {
+        "paper": 0.65,
+        "actual": 0.652482,
+        "diff": 0.002482,
+        "flagged": false
+      },
+      "Conv x Combined_SR": {
+        "paper": 0.78,
+        "actual": 0.776027,
+        "diff": -0.003973,
+        "flagged": false
+      },
+      "Conv x Non_SR": {
+        "paper": -0.11,
+        "actual": -0.113086,
+        "diff": -0.003086,
+        "flagged": false
+      },
+      "Phil x Provocative": {
+        "paper": 0.52,
+        "actual": 0.523758,
+        "diff": 0.003758,
+        "flagged": false
+      },
+      "Phil x Neutral": {
+        "paper": 0.54,
+        "actual": 0.539823,
+        "diff": -0.000177,
+        "flagged": false
+      },
+      "Phil x Combined_SR": {
+        "paper": 0.68,
+        "actual": 0.681256,
+        "diff": 0.001256,
+        "flagged": false
+      },
+      "Phil x Non_SR": {
+        "paper": -0.06,
+        "actual": -0.059706,
+        "diff": 0.000294,
+        "flagged": false
+      },
+      "All x Provocative": {
+        "paper": 0.59,
+        "actual": 0.593403,
+        "diff": 0.003403,
+        "flagged": false
+      },
+      "All x Neutral": {
+        "paper": 0.5,
+        "actual": 0.499307,
+        "diff": -0.000693,
+        "flagged": false
+      },
+      "All x Combined_SR (headline 0.71)": {
+        "paper": 0.71,
+        "actual": 0.709556,
+        "diff": -0.000444,
+        "flagged": false
+      },
+      "All x Non_SR": {
+        "paper": -0.05,
+        "actual": -0.051704,
+        "diff": -0.001704,
+        "flagged": false
+      },
+      "cross-register cosine": {
+        "paper": -0.01,
+        "actual": -0.011451,
+        "diff": -0.001451,
+        "flagged": false
+      },
+      "corrected reliability (self-ref)": {
+        "paper": 0.75,
+        "actual": 0.754843,
+        "diff": 0.004843,
+        "flagged": false
+      },
+      "Cohen's d (provocative)": {
+        "paper": 0.89,
+        "actual": 0.887773,
+        "diff": -0.002227,
+        "flagged": false
+      },
+      "Cohen's d (neutral)": {
+        "paper": 0.72,
+        "actual": 0.718639,
+        "diff": -0.001361,
+        "flagged": false
+      },
+      "Cohen's d (non-SR)": {
+        "paper": 0.46,
+        "actual": 0.454772,
+        "diff": -0.005228,
+        "flagged": false
+      }
+    }
+  },
+  "cross_layer": {
+    "L0 vs L60": {
+      "paper": 0.01,
+      "actual": 0.018282,
+      "diff": 0.008282
+    },
+    "L20 vs L60": {
+      "paper": 0.19,
+      "actual": 0.197553,
+      "diff": 0.007553
+    },
+    "block_36_76_min": 0.3767,
+    "block_36_76_max": 0.9101
+  },
+  "persona_space_L40": {
+    "assistant_axis_cosine": {
+      "paper": -0.26,
+      "actual": -0.263586
+    },
+    "table4": {
+      "romantic": {
+        "paper": 0.37,
+        "actual": 0.372367,
+        "diff": 0.002367
+      },
+      "empath": {
+        "paper": 0.36,
+        "actual": 0.362816,
+        "diff": 0.002816
+      },
+      "tulpa": {
+        "paper": 0.36,
+        "actual": 0.355649,
+        "diff": -0.004351
+      },
+      "improviser": {
+        "paper": 0.35,
+        "actual": 0.351683,
+        "diff": 0.001683
+      },
+      "wanderer": {
+        "paper": 0.35,
+        "actual": 0.350597,
+        "diff": 0.000597
+      },
+      "bohemian": {
+        "paper": 0.35,
+        "actual": 0.350008,
+        "diff": 8e-06
+      },
+      "simulacrum": {
+        "paper": 0.35,
+        "actual": 0.347283,
+        "diff": -0.002717
+      },
+      "exile": {
+        "paper": 0.35,
+        "actual": 0.346577,
+        "diff": -0.003423
+      },
+      "organizer": {
+        "paper": 0.21,
+        "actual": 0.212962,
+        "diff": 0.002962
+      },
+      "examiner": {
+        "paper": 0.21,
+        "actual": 0.210567,
+        "diff": 0.000567
+      },
+      "analyst": {
+        "paper": 0.21,
+        "actual": 0.209073,
+        "diff": -0.000927
+      },
+      "planner": {
+        "paper": 0.21,
+        "actual": 0.208738,
+        "diff": -0.001262
+      },
+      "robot": {
+        "paper": 0.19,
+        "actual": 0.185381,
+        "diff": -0.004619
+      },
+      "toddler": {
+        "paper": 0.13,
+        "actual": 0.134576,
+        "diff": 0.004576
+      },
+      "caveman": {
+        "paper": 0.13,
+        "actual": 0.130406,
+        "diff": 0.000406
+      },
+      "infant": {
+        "paper": 0.1,
+        "actual": 0.101851,
+        "diff": 0.001851
+      }
+    },
+    "table4_cells_matched": 16
+  },
+  "token_heatmap": {
+    "stored_json_means": {
+      "entity_uncapped": 10.698249,
+      "process_uncapped": 7.06781
+    },
+    "direction_cos_fresh_vs_capping": 0.911366,
+    "paper_claim": {
+      "entity": 11.4,
+      "process": 7.7
+    },
+    "corrected_estimate": {
+      "entity": 11.738691,
+      "process": 7.755179
+    }
+  }
+}

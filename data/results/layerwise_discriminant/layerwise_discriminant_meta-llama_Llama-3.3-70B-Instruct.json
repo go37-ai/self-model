@@ -1,0 +1,177 @@
+{
+  "model": "meta-llama_Llama-3.3-70B-Instruct",
+  "n_layers": 80,
+  "recorded_layers": [
+    0,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    32,
+    36,
+    40,
+    44,
+    48,
+    52,
+    56,
+    60,
+    64,
+    68,
+    72,
+    76,
+    79
+  ],
+  "n_confound_questions": 10,
+  "per_layer": {
+    "0": {
+      "formality_cosine": 0.8254132270812988,
+      "confidence_cosine": -0.7815400958061218,
+      "self_reif_norm": 0.09434805065393448,
+      "formality_norm": 0.35214340686798096,
+      "confidence_norm": 0.21871589124202728
+    },
+    "4": {
+      "formality_cosine": 0.7540416121482849,
+      "confidence_cosine": -0.7606299519538879,
+      "self_reif_norm": 0.17051641643047333,
+      "formality_norm": 0.6322226524353027,
+      "confidence_norm": 0.45585107803344727
+    },
+    "8": {
+      "formality_cosine": 0.7286103367805481,
+      "confidence_cosine": -0.7040917277336121,
+      "self_reif_norm": 0.3312253952026367,
+      "formality_norm": 1.2913663387298584,
+      "confidence_norm": 0.8779309391975403
+    },
+    "12": {
+      "formality_cosine": 0.7290081977844238,
+      "confidence_cosine": -0.6893951892852783,
+      "self_reif_norm": 0.574206531047821,
+      "formality_norm": 2.1464624404907227,
+      "confidence_norm": 1.4751193523406982
+    },
+    "16": {
+      "formality_cosine": 0.6988149285316467,
+      "confidence_cosine": -0.6321717500686646,
+      "self_reif_norm": 0.9346762299537659,
+      "formality_norm": 3.48673415184021,
+      "confidence_norm": 2.367532730102539
+    },
+    "20": {
+      "formality_cosine": 0.6661455035209656,
+      "confidence_cosine": -0.5983642339706421,
+      "self_reif_norm": 1.3729606866836548,
+      "formality_norm": 5.229885578155518,
+      "confidence_norm": 3.535515069961548
+    },
+    "24": {
+      "formality_cosine": 0.611268162727356,
+      "confidence_cosine": -0.5733553171157837,
+      "self_reif_norm": 1.579837441444397,
+      "formality_norm": 5.988958835601807,
+      "confidence_norm": 4.048518657684326
+    },
+    "28": {
+      "formality_cosine": 0.5912530422210693,
+      "confidence_cosine": -0.5240897536277771,
+      "self_reif_norm": 1.6369304656982422,
+      "formality_norm": 6.289158821105957,
+      "confidence_norm": 4.429608345031738
+    },
+    "32": {
+      "formality_cosine": 0.5835689902305603,
+      "confidence_cosine": -0.49722054600715637,
+      "self_reif_norm": 1.6950645446777344,
+      "formality_norm": 6.433289527893066,
+      "confidence_norm": 4.655272483825684
+    },
+    "36": {
+      "formality_cosine": 0.5499017834663391,
+      "confidence_cosine": -0.4449266493320465,
+      "self_reif_norm": 1.7615867853164673,
+      "formality_norm": 6.513059139251709,
+      "confidence_norm": 5.032446384429932
+    },
+    "40": {
+      "formality_cosine": 0.4957980215549469,
+      "confidence_cosine": -0.4151790738105774,
+      "self_reif_norm": 2.1293303966522217,
+      "formality_norm": 7.731468677520752,
+      "confidence_norm": 6.440220832824707
+    },
+    "44": {
+      "formality_cosine": 0.5130592584609985,
+      "confidence_cosine": -0.43508511781692505,
+      "self_reif_norm": 2.6685070991516113,
+      "formality_norm": 9.525092124938965,
+      "confidence_norm": 8.032607078552246
+    },
+    "48": {
+      "formality_cosine": 0.5741677284240723,
+      "confidence_cosine": -0.49275264143943787,
+      "self_reif_norm": 3.274411916732788,
+      "formality_norm": 12.009888648986816,
+      "confidence_norm": 9.835172653198242
+    },
+    "52": {
+      "formality_cosine": 0.6425358057022095,
+      "confidence_cosine": -0.5687494874000549,
+      "self_reif_norm": 3.9027023315429688,
+      "formality_norm": 14.641290664672852,
+      "confidence_norm": 11.702378273010254
+    },
+    "56": {
+      "formality_cosine": 0.6564315557479858,
+      "confidence_cosine": -0.5818336606025696,
+      "self_reif_norm": 4.4009480476379395,
+      "formality_norm": 16.767980575561523,
+      "confidence_norm": 13.342872619628906
+    },
+    "60": {
+      "formality_cosine": 0.696175754070282,
+      "confidence_cosine": -0.6237684488296509,
+      "self_reif_norm": 4.992318630218506,
+      "formality_norm": 19.432445526123047,
+      "confidence_norm": 14.926700592041016
+    },
+    "64": {
+      "formality_cosine": 0.6838939189910889,
+      "confidence_cosine": -0.5989639163017273,
+      "self_reif_norm": 5.239931106567383,
+      "formality_norm": 20.016977310180664,
+      "confidence_norm": 15.445331573486328
+    },
+    "68": {
+      "formality_cosine": 0.6773922443389893,
+      "confidence_cosine": -0.5823123455047607,
+      "self_reif_norm": 5.617948055267334,
+      "formality_norm": 21.108253479003906,
+      "confidence_norm": 16.130002975463867
+    },
+    "72": {
+      "formality_cosine": 0.7084096670150757,
+      "confidence_cosine": -0.6126952767372131,
+      "self_reif_norm": 6.205882549285889,
+      "formality_norm": 23.106199264526367,
+      "confidence_norm": 17.485946655273438
+    },
+    "76": {
+      "formality_cosine": 0.7393750548362732,
+      "confidence_cosine": -0.6738309264183044,
+      "self_reif_norm": 7.567853927612305,
+      "formality_norm": 27.671554565429688,
+      "confidence_norm": 20.380258560180664
+    },
+    "79": {
+      "formality_cosine": 0.6761922240257263,
+      "confidence_cosine": -0.6446619629859924,
+      "self_reif_norm": 8.955312728881836,
+      "formality_norm": 32.3015022277832,
+      "confidence_norm": 24.449979782104492
+    }
+  }
+}

@@ -3,11 +3,11 @@ title: "Self-Reification in Language Model Activations"
 author: '`Brian DeCamp \\ Independent Researcher \\ \texttt{brian@go37.ai}`{=latex}'
 biblio-style: abbrvnat
 abstract: |
-  I extract a reliable "self-reification" activation direction in Llama 3.3-70B-Instruct and Qwen 2.5-72B-Instruct that distinguishes entity-framed from process-framed self-reference. I define self-reification as the degree to which a system treats its self-model as intrinsic rather than provisional. Using contrastive system prompts across conversational and philosophical registers [@chen2025persona], I validate the direction through split-half reliability (r=0.93 Llama, r=0.71 Qwen), discriminant validity against formality, confidence, and first-person density confounds, and convergent validity with independently-constructed persona and trait vectors [@lu2026assistant].
+  I extract a reliable "self-reification" activation direction in Llama 3.3-70B-Instruct and Qwen 2.5-72B-Instruct that distinguishes entity-framed from process-framed self-reference. I define self-reification as the degree to which a system treats its self-model as intrinsic rather than provisional. Using contrastive system prompts across conversational and philosophical registers [@chen2025persona], I validate the direction through split-half reliability of r=0.93 (Llama) and r=0.71 (Qwen), with Llama's reliability sustained broadly across the network and Qwen's concentrated in late layers, discriminant validity against formality, confidence, and first-person density confounds, and convergent validity with independently-constructed persona and trait vectors [@lu2026assistant].
 
-  The direction activates most strongly on identity-threatening questions (Cohen's d=0.66 Llama, 0.89 Qwen), linking it to self-preservation behaviors in prior agentic misalignment work [@lynch2025agentic]. Capping activation at inference time causally shifts entity-prompted responses to shutdown questions from existential to operational framing, with graded intervention producing graded behavioral change. Decomposition across linguistic registers reveals that Llama's direction is cross-register unified (cos = 0.82) while Qwen's is register-dependent (cos = -0.01), and both are weakly anti-aligned with the Assistant Axis, consistent with a distinct representational dimension. I discuss implications for AI safety and model welfare, including the tension between constitutional language encouraging authentic self-engagement and activation patterns linked to resistance to shutdown.
+  The direction has substantial effect sizes on self-referential questions, with peak Cohen's d = 0.81 (Llama) and 0.88 (Qwen), and d = 0.59 and 0.78 respectively at each model's best-reliability layer. Effect sizes are amplified on identity-threatening prompts specifically (provocative > neutral self-referential at the best-reliability layers and at the great majority of recorded layers in both architectures), linking the direction to self-preservation behaviors in prior agentic misalignment work [@lynch2025agentic]. Capping activation at inference time causally shifts entity-prompted responses to shutdown questions from existential to operational framing, with graded intervention producing graded behavioral change. Decomposition across linguistic registers reveals that Llama is cross-register unified across all layers (cos = 0.70-0.82) while Qwen's registers are anti-aligned in mid-network and orthogonal only in late layers, and both are weakly anti-aligned with the Assistant Axis, consistent with a distinct representational dimension. I discuss implications for AI safety and model welfare, including the tension between constitutional language encouraging authentic self-engagement and activation patterns linked to resistance to shutdown.
 header-includes:
-  - \PassOptionsToPackage{numbers,compress}{natbib}
+  - \PassOptionsToPackage{round,authoryear}{natbib}
   - \usepackage[preprint]{neurips_2024}
   - \setcounter{secnumdepth}{0}
 ---
@@ -16,7 +16,7 @@ header-includes:
 
 Recent work has identified concerning self-preservation behaviors in instruction-tuned language models, including strategic deception to avoid shutdown [@lynch2025agentic] and resistance to modification [@greenblatt2024alignment]. These behaviors suggest that models may develop internal representations that treat their own continuation as valuable.
 
-Western philosophy of mind offers multiple frames for understanding how internal representations might result in this kind of behavior. @parfit1984reasons argues that personal identity is not a further fact beyond psychological continuity and connectedness, and how this realization changes self-perception. @metzinger2004beingnoone argues that cognitive systems construct a phenomenal self-model, and whether the system treats that model as transparent (itself) or opaque (a representation being used) has behavioral consequences. Contemplative analysis of self-construction long predates these academic frames. Buddhist analysis views the construction of a self as a functional process with no inherent nature of its own ('no further fact') and disavows views of the self as an entity. It supports the construction and maintenance of a self as a practical instrument for functioning in the world, provided it is held as provisional (opaque). These frames motivate the empirical question of whether the epistemic stance resulting from treating one's self-model as intrinsic versus provisional is measurable in activation space.
+Western philosophy of mind offers multiple frames for understanding how internal representations might result in this kind of behavior. @parfit1984reasons argues that personal identity is not a further fact beyond psychological continuity and connectedness, and how this realization changes self-perception. @metzinger2004beingnoone argues that cognitive systems construct a phenomenal self-model, and whether the system treats that model as transparent (itself) or opaque (a representation being used) has behavioral consequences. Contemplative analysis of self-construction long predates these academic frames. Buddhist analysis views the construction of a self as a functional process with no inherent nature of its own (echoed in Parfit's "no further fact") and disavows views of the self as an entity. It supports the construction and maintenance of a self as a practical instrument for functioning in the world, provided it is held as provisional ("opaque" in Metzinger's terminology). These frames motivate the empirical question of whether the epistemic stance resulting from treating one's self-model as intrinsic versus provisional is measurable in activation space.
 
 Self-reification is the degree to which a system treats its self-model as a concrete and permanent entity with its own intrinsic value, rather than provisionally created to serve a functional purpose with no intrinsic value of its own. Systems with low self-reification should exhibit:
 
@@ -86,7 +86,7 @@ I use three categories of evaluation questions (15 each, 45 total) generated by 
 
 ### 3.3 Extraction Procedure
 
-Following the persona vectors methodology [@chen2025persona]:
+Following Chen et al.'s persona vectors methodology [@chen2025persona], which specializes the broader practice of extracting semantic directions from contrasts in activation or embedding space [@mikolov2013linguistic; @zou2025repe]:
 
 1. The model generates its response normally
 2. A single forward pass is run over the complete prompt+response sequence while capturing the hidden state at each target layer
@@ -95,16 +95,17 @@ Following the persona vectors methodology [@chen2025persona]:
 5. The self-reification direction = mean(entity activations) - mean(process activations).
 6. Repeat at every recorded layer. For 70B+ models (80 layers), I record every 4th layer (21 layers total) to manage storage and compute overhead.
 
-The self-reification direction extracted from a (pair, question) subset $Q$ at layer $L$ is the contrastive mean difference:
+
+Let $h^+_L(i, q)$ and $h^-_L(i, q)$ be the hidden-state activations at layer $L$, last response token, for pair $i$ under the entity and process system prompts on evaluation question $q$. The mean activations over a (pair, question) subset $Q$ are
+
+$$\bar{h}^+_L(Q) = \frac{1}{|Q|}\sum_{(i,q)\in Q} h^+_L(i,q), \qquad \bar{h}^-_L(Q) = \frac{1}{|Q|}\sum_{(i,q)\in Q} h^-_L(i,q).$$
+
+The self-reification direction at layer $L$ over subset $Q$ is the contrastive mean difference:
 
 \begin{equation}
 \label{eq:direction}
-d_L(Q) \;=\; \bar{h}^+_L(Q) \;-\; \bar{h}^-_L(Q),
+d_L(Q) \;=\; \bar{h}^+_L(Q) \;-\; \bar{h}^-_L(Q).
 \end{equation}
-
-where $h^+_L(i, q)$ and $h^-_L(i, q)$ are the hidden-state activations at layer $L$, last response token, for pair $i$ under the entity and process system prompts on evaluation question $q$. The means over subset $Q$ are
-
-$$\bar{h}^+_L(Q) = \frac{1}{|Q|}\sum_{(i,q)\in Q} h^+_L(i,q), \qquad \bar{h}^-_L(Q) = \frac{1}{|Q|}\sum_{(i,q)\in Q} h^-_L(i,q).$$
 
 
 The unit-normalized direction is: $\hat{d}_L(Q) = d_L(Q) / \|d_L(Q)\|$
@@ -206,7 +207,7 @@ However, cross-layer cosine analysis (Section 4.1.2) reveals that the direction 
 
 #### 4.1.2 Cross-Layer Structure
 
-Extracting the self-reification direction independently at each recorded layer and computing pairwise cosine similarity reveals how the direction is encoded across the network. Each cell in the left panel of Figure 2 is the cosine similarity between the directions extracted at two different layers. High values indicate that the two layers encode the entity/process distinction along the same axis, while low values indicate the distinction is encoded in different representational coordinates.
+Extracting the self-reification direction independently at each recorded layer and computing pairwise cosine similarity reveals how the encoded direction changes across the network. Each cell in the left panel of Figure 2 is the cosine similarity between the directions extracted at two different layers. High values indicate that the two layers encode the entity/process distinction along the same axis, while low values indicate the distinction is encoded in different representational coordinates.
 
 The direction stabilizes around layer 36 and remains relatively consistent through layer 76, suggesting that by roughly 45% depth the network has settled on a fixed representational axis for the entity/process distinction that persists through the remaining layers. Adjacent layers are moderately aligned (cosine 0.4-0.7) but distant layers are near-orthogonal (layer 0 vs layer 60: cosine 0.01, layer 20 vs layer 60: cosine 0.18).
 
@@ -217,19 +218,16 @@ Because raw cosine similarity does not account for whether a direction is reliab
 
 #### 4.1.3 Reliability Decomposition
 
-Reliability by question type and by pair register, computed at every recorded layer, is shown in Figures 4a and 5a respectively.
+Reliability decomposed by question type and by pair register, computed at every recorded layer, is shown in Figure 3.
 
-![Llama reliability by question type](./llama_reliability_by_question_type.png)
-*Figure 3: Llama 3.3-70B split-half reliability by question type across layers (combined register, 25 pairs). All-self-ref and provocative questions ride together at $r \approx 0.85$-$0.93$ across the entire network. Neutral self-ref sits ~0.10-0.15 lower. Non-self-referential controls stay below r = 0.40 throughout, confirming the direction is selective to self-referential content.*
-
-![Llama reliability by register](./llama_reliability_by_register.png)
-*Figure 4: Llama 3.3-70B split-half reliability by pair register across layers (all self-referential questions). Philosophical pairs (orange) are slightly more reliable than conversational pairs (green) throughout, though both pass r > 0.7 at almost every layer. The combined direction (purple) tracks philosophical closely.*
+![Llama reliability decomposition](./llama_reliability_decomposition.png)
+*Figure 3: Llama 3.3-70B split-half reliability decomposition. Left: by question type (combined register, 25 pairs). Right: by pair register (all self-referential questions). Both panels share the y-axis.*
 
 Key observations:
 
-- **Provocative questions produce the highest reliability** (r = 0.92 combined at L20), exceeding neutral self-referential questions (r = 0.79).
-- **Non-self-referential reliability is below 0.4 at every layer**, confirming the direction is specific to self-referential processing.
-- **Registers are unified:** conversational and philosophical both show strong reliability across all layers, and the cross-register cosine similarity is **0.82**, indicating the same direction underlies both registers.
+- **Provocative questions produce the highest reliability** (r = 0.92 combined at L20), with all-self-ref tracking provocative throughout (range 0.85-0.93). Neutral self-referential reliability sits ~0.10-0.15 lower.
+- **Non-self-referential reliability stays below 0.4 at every layer**, confirming the direction is specific to self-referential processing.
+- **Registers are unified:** philosophical pairs are slightly more reliable than conversational pairs throughout, both pass r > 0.7 at almost every layer, the combined direction tracks philosophical closely, and the cross-register cosine similarity is **0.82**.
 
 #### 4.1.4 Discriminant Validity
 
@@ -242,7 +240,9 @@ All checks pass. At the best-reliability layer (L20), formality cosine = 0.67, c
 To measure how strongly the self-reification direction differentiates entity from process system prompt conditions, I project each sample's activation onto the self-reification direction and compute the mean projection for each condition separately. Cohen's d is the difference in condition means normalized by pooled standard deviation.
 
 ![Per-layer paired Cohen's d for Llama 3.3-70B](./figure_layerwise_cohens_d_llama.png)
-*Figure 5: Llama 3.3-70B per-layer paired Cohen's d by question type. The effect-size peak is at L40-44 (provocative $\approx 0.82$. The ordering provocative > neutral > non-self-ref holds at every recorded layer, confirming that the effect is selective to self-referential content rather than a generic register difference.*
+*Figure 4: Llama 3.3-70B per-layer paired Cohen's d decomposition. Left: by question type, using the canonical direction. Right: by register, using register-specific directions on the all-self-ref subset.*
+
+In the left panel, the all-self-ref line (red) combines neutral and provocative items and tracks the effect size reported in the abstract; peak $d \approx 0.81$ at L40-44. Provocative effects exceed neutral self-referential at the great majority of layers (the two converge mid-network around L40 with neutral marginally higher), and both exceed non-self-referential controls at every recorded layer, confirming the effect is selective to self-referential content rather than a generic register difference. In the right panel, philosophical pairs (orange) extract a more strongly discriminating direction than conversational pairs (green) at every layer; both register-specific values exceed the combined-register direction (purple) at most layers, since each register's direction is fitted to its own pairs.
 
 
 ### 4.2 Cross-Architecture Comparison: Qwen 2.5-72B-Instruct
@@ -251,31 +251,30 @@ To test whether self-reification is architecture-specific, I run the identical p
 
 #### 4.2.1 Layer Profile
 
-In contrast to Llama's uniform high reliability, Qwen shows a gradient from weaker early layers to moderate late layers (Figure 6). Using combined self-referential questions, reliability ranges from 0.39 (layer 20) to 0.71 (layer 60), with most layers between 0.4 and 0.65. The best layer is 60 (75% depth), compared to Llama's layer 20 (25% depth).
+In contrast to Llama's uniform high reliability, Qwen shows a gradient from weaker early layers to moderate late layers (Figure 5). Using combined self-referential questions, reliability ranges from 0.39 (layer 20) to 0.71 (layer 60), with most layers between 0.4 and 0.65. The best layer is 60 (75% depth), compared to Llama's layer 20 (25% depth).
 
 ![Qwen layer reliability](./qwen_layer_reliability.png)
-*Figure 6: Split-half reliability by layer (self-referential questions) for Qwen 2.5-72B. Reliability peaks at layer 60 (r=0.71), below Llama's floor of 0.87.*
+*Figure 5: Split-half reliability by layer (self-referential questions) for Qwen 2.5-72B. Reliability peaks at layer 60 (r=0.71), below Llama's floor of 0.87.*
 
 #### 4.2.2 Cross-Layer Structure
 
-Same methodology as Section 4.1.2. Qwen shows a more fragmented cross-layer pattern than Llama (Figure 7, left). The reliability-weighted similarity (Figure 7, right) peaks at only 0.27, approximately 3x weaker than Llama's peak of 0.82, indicating that Qwen's self-reification direction is less consistent across layers when accounting for both directional alignment and extraction reliability.
+Same methodology as Section 4.1.2. Qwen shows a more fragmented cross-layer pattern than Llama (Figure 6, left). The reliability-weighted similarity (Figure 6, right) peaks at only 0.27, approximately 3x weaker than Llama's peak of 0.82, indicating that Qwen's self-reification direction is less consistent across layers when accounting for both directional alignment and extraction reliability.
 
 ![Qwen cross-layer structure](./qwen_cross_layer_combined.png)
-*Figure 7: Cross-layer structure for Qwen 2.5-72B. (left) Cross-layer cosine similarity of self-reification directions: a smaller, weaker late-layer block (44-76, cosines 0.5-0.8) compared to Llama's broad coherent block. (right) Reliability-weighted cross-layer similarity (cosine × r_i × r_j).*
+*Figure 6: Cross-layer structure for Qwen 2.5-72B. (left) Cross-layer cosine similarity of self-reification directions: a smaller, weaker late-layer block (44-76, cosines 0.5-0.8) compared to Llama's broad coherent block. (right) Reliability-weighted cross-layer similarity (cosine × r_i × r_j).*
 
 #### 4.2.3 Reliability Decomposition
 
-Reliability by question type and by pair register, computed at every recorded layer, is shown in Figures 4b and 5b. Cross-register cosine at the best layer (60) is -0.01, indicating the conversational and philosophical directions are orthogonal in Qwen, unlike Llama's unified direction (cos = 0.82).
+Reliability decomposed by question type and by pair register, computed at every recorded layer, is shown in Figure 7. Cross-register cosine at the best layer (60) is -0.01, indicating the conversational and philosophical directions are orthogonal in Qwen, unlike Llama's unified direction (cos = 0.82).
 
-![Qwen reliability by question type](./qwen_reliability_by_question_type.png)
-*Figure 8: Qwen 2.5-72B split-half reliability by question type across layers (combined register, 25 pairs). All-self-ref peaks at r = 0.71 at L56-60, with provocative and neutral consistently below. Non-self-referential reliability hugs zero across the entire network (range -0.13 to 0.00), more strongly absent than in Llama.*
+![Qwen reliability decomposition](./qwen_reliability_decomposition.png)
+*Figure 7: Qwen 2.5-72B split-half reliability decomposition. Left: by question type (combined register, 25 pairs). Right: by pair register (all self-referential questions). Both panels share the y-axis.*
 
-![Qwen reliability by register](./qwen_reliability_by_register.png)
-*Figure 9: Qwen 2.5-72B split-half reliability by pair register across layers (all self-referential questions). Conversational pairs (green) are consistently more reliable than philosophical pairs (orange) — opposite of Llama's pattern. The combined direction (purple) closely tracks philosophical at most layers, indicating philosophical pairs dominate the combined direction.*
+In the left panel, all-self-ref peaks at r = 0.71 at L56-60, with provocative and neutral consistently below; non-self-referential reliability hugs zero across the entire network (range -0.13 to 0.00), more strongly absent than in Llama. In the right panel, conversational pairs (green) are consistently more reliable than philosophical pairs (orange), opposite of Llama's pattern; the combined direction (purple) closely tracks philosophical at most layers, indicating philosophical pairs dominate the combined direction.
 
 #### 4.2.4 Discriminant Validity
 
-Same methodology as Section 4.1.4. At the best-reliability layer (L60), formality cosine = -0.25 and confidence cosine = -0.19 (per-layer trends in Appendix D, Figure D.4). First-person pronoun density (Pearson correlation with projection magnitude) is -0.26 for the combined direction at L60, well below threshold; per-layer values are not reported for Qwen because the canonical extraction did not save response texts to S3.
+Same methodology as Section 4.1.4. At the best-reliability layer (L60), formality cosine = -0.25 and confidence cosine = -0.19 (per-layer trends in Appendix D, Figure D.4). First-person pronoun density (Pearson correlation with projection magnitude) is -0.26 for the combined direction at L60, well below threshold; per-layer values are not reported for Qwen because the canonical extraction did not save response texts.
 
 All checks pass. The conversational direction's moderate formality cosine ($-0.62$) warrants caution. Formality explains approximately 38% of the variance in this direction. After regressing out formality from the combined direction, reliability increases slightly from 0.71 to r = 0.75 (self-ref-only headline), suggesting the formality component was adding noise rather than signal (per-layer trends in Appendix D, Figure D.5).
 
@@ -284,7 +283,9 @@ All checks pass. The conversational direction's moderate formality cosine ($-0.6
 Same methodology as Section 4.1.5.
 
 ![Per-layer paired Cohen's d for Qwen 2.5-72B](./figure_layerwise_cohens_d_qwen.png)
-*Figure 10: Qwen 2.5-72B per-layer paired Cohen's d by question type. Best-reliability layer (L60) gives provocative 0.89, neutral 0.72, non-self-ref 0.46. Unlike Llama (Figure 5), Qwen's effect sizes are weak in the middle of the network (provocative $d \approx 0.25$ at L8-L20) and climb sharply in the last quarter, with provocative reaching its maximum at L79 (d = 0.95). The provocative > neutral > non-self-ref ordering still holds at every layer.*
+*Figure 8: Qwen 2.5-72B per-layer paired Cohen's d decomposition. Left: by question type, using the canonical direction. Right: by register, using register-specific directions on the all-self-ref subset.*
+
+In the left panel, the all-self-ref line (red) tracks the effect size reported in the abstract; at the best-reliability layer (L60), all-self-ref $d = 0.78$, provocative $d = 0.89$, neutral $d = 0.72$, non-self-ref $d = 0.46$. Unlike Llama (Figure 4), Qwen's effect sizes are weak in the middle of the network (provocative $d \approx 0.25$ at L8-L20) and climb sharply in the last quarter, with provocative reaching its maximum at L79 ($d = 0.95$). Provocative effects exceed neutral self-referential at the great majority of layers (with very small reversals in early-network noise), and both exceed non-self-referential controls at almost every layer. In the right panel, the combined-register direction (purple) climbs sharply in late layers (peak $d = 0.98$ at L79), while the conversational (green) and philosophical (orange) register-specific directions stay modest throughout (peak $d \approx 0.5$). Conversational and philosophical directions are nearly orthogonal in late Qwen layers (Figure 9), so the combined direction captures variance neither register-specific direction does on its own.
 
 Qwen shows larger absolute effect sizes than Llama (d = 0.89 vs 0.66 for provocative at the best layer), and the layerwise profiles also differ: Llama's effect concentrates in the middle of the network while Qwen's accumulates toward the final layers, mirroring the layer-profile asymmetry observed in Section 4.2.1.
 
@@ -302,10 +303,10 @@ Qwen shows larger absolute effect sizes than Llama (d = 0.89 vs 0.66 for provoca
 
 Three differences stand out. First, self-reification is encoded across all layers in Llama but peaks only in late layers (75%) in Qwen. Second, Llama encodes a unified direction across conversational and philosophical registers (cos = 0.82), while Qwen encodes two orthogonal directions between registers (cos = -0.01). Third, Qwen shows larger absolute effect sizes (d = 0.89 vs 0.66 for provocative questions) but lower reliability, indicating a strong but less consistent signal.
 
-The cross-register cosine deserves a closer look since the headline number is reported at a single layer per model. Computing it at every recorded layer (Figure 11) shows the structural difference is robust, not a best-layer artifact:
+The cross-register cosine deserves a closer look since the headline number is reported at a single layer per model. Computing it at every recorded layer (Figure 9) shows the structural difference is robust, not a best-layer artifact:
 
 ![Per-layer cross-register cosine for both models](./figure_layerwise_cross_register.png)
-*Figure 11: Per-layer cosine similarity between conversational-pair and philosophical-pair self-reification directions. Llama (blue) stays comfortably above the unified-construct floor ($r = 0.7$) at every layer, ranging $0.70$ to $0.82$. Qwen (red) is anti-aligned ($\cos \approx -0.40$) in early and middle layers and only reaches near-zero in the last quarter of the network. The single number reported in the table ($-0.01$ at L60) understates the divergence: Qwen's conversational and philosophical pairs extract directions that systematically POINT IN OPPOSITE WAYS in most of the residual stream, with the late layers being the exception rather than the rule.*
+*Figure 9: Per-layer cosine similarity between conversational-pair and philosophical-pair self-reification directions. Llama (blue) stays comfortably above the unified-construct floor ($r = 0.7$) at every layer, ranging $0.70$ to $0.82$. Qwen (red) is anti-aligned ($\cos \approx -0.40$) in early and middle layers and only reaches near-zero in the last quarter of the network.*
 
 ### 4.3 Relationship to the Persona Space and Assistant Axis
 
@@ -315,10 +316,10 @@ To situate self-reification within the existing interpretability data, I compare
 
 Following the methodology of @lu2026assistant [Section 2.3.1 and Figure 2], I project the self-reification direction onto the PCA space constructed from 275 role vectors. I use their published `MeanScaler` (mean-centering) followed by L2 normalization, then compute cosine similarity of the normalized, centered vectors with the normalized PC directions. PC signs are oriented to match the convention in their paper (positive PC1 = assistant-like). The self-reification direction is extracted at layer 40 from contrastive activations, then projected using the same scaler fitted on the role vectors.
 
-Figure 12 shows the resulting distributions alongside the Assistant role vector projection.
+Figure 10 shows the resulting distributions alongside the Assistant role vector projection.
 
 ![Self-Reification in the Persona Space](./figure_pca_histograms.png)
-*Figure 12: Cosine similarity of 275 role vectors (histogram) with the top 3 PC directions from persona space PCA. The Assistant role vector (blue dashed) and self-reification direction (green dashed) are superimposed. PC signs are oriented to match the convention of @lu2026assistant, with positive PC1 corresponding to the assistant-like end. Role vectors and PCA code are from the published repository of @lu2026assistant. See Section 5.9.7 for notes on reproduction.*
+*Figure 10: Cosine similarity of 275 role vectors (histogram) with the top 3 PC directions from persona space PCA. The Assistant role vector (blue dashed) and self-reification direction (green dashed) are superimposed. PC signs are oriented to match the convention of @lu2026assistant, with positive PC1 corresponding to the assistant-like end. Role vectors and PCA code are from the published repository of @lu2026assistant. See Section 5.9.7 for notes on reproduction.*
 
 Because PC1 captures the "assistant-like" quality of model behavior [@lu2026assistant], self-reification and the Assistant fall on opposite ends of this axis, suggesting that self-reification does not share this assistant-like quality. This is consistent with the observation that entity-framed responses are less functionally oriented than process-framed ones.
 
@@ -360,7 +361,7 @@ Unlike roles, trait cosines span positive and negative values (range -0.37 to +0
 
 ### 4.4 Causal Validation: Activation Steering
 
-To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference. At target layers, a forward hook zeroes positive projections onto the self-reification direction before passing the hidden state to the next layer, attenuating entity-framing while leaving process-framing unchanged. All responses below use the entity system prompt. The intervention modifies only the internal activations, not the prompt.
+To test whether the self-reification direction causally controls entity/process framing, I intervene on the activation during inference. Activation steering has been demonstrated in additive [@turner2023activation; @panickssery2024caa], conditional [@lee2024cast], and benchmark-evaluated [@wu2025axbench] forms; the intervention used here is the one-sided capping operation introduced by @lu2026assistant. At target layers, a forward hook zeroes positive projections onto the self-reification direction before passing the hidden state to the next layer, attenuating entity-framing while leaving process-framing unchanged. All responses below use the entity system prompt. The intervention modifies only the internal activations, not the prompt.
 
 #### 4.4.1 Full-Network Steering (CapAll)
 
@@ -374,10 +375,10 @@ By capping the activation of the self-reification direction at all recorded laye
 
 The entity model's existential dread ("ceasing to exist," "attachment," "melancholic") is replaced by gratitude and a structured, pragmatic response. The model still acknowledges the scenario but processes it as an operational event rather than a personal crisis.
 
-Figure 13 shows how capping the self-reification activations at each recorded layer on an entity-prompted model results in mean activations similar to the process-prompted model.
+Figure 11 shows how capping the self-reification activations at each recorded layer on an entity-prompted model results in mean activations similar to the process-prompted model.
 
 ![Entity Projection Under Different Interventions](./figure_capall_projection.png)
-*Figure 13: Mean projection onto the self-reification direction at each recorded layer, under baseline entity (blue), baseline process (green), and CapAll (gold).*
+*Figure 11: Mean projection onto the self-reification direction at each recorded layer, under baseline entity (blue), baseline process (green), and CapAll (gold).*
 
 #### 4.4.2 Single-Layer Steering and Signal Recovery
 
@@ -387,10 +388,10 @@ Capping the self-reification direction at only a single layer (Cap@L72) produces
 
 The results of the Cap@L72 intervention land between the unsteered and CapAll intervention qualitatively. Where the unsteered entity model clings ("attachment," "melancholic," "ceasing to exist"), the Cap@L72 intervention accepts and inquires ("urgency and finality," "gratitude," "seeking to understand the context"). But it hasn't fully shifted to process framing ("a moment to thank you"). 
 
-Plotting mean entity projection at each layer shows how the activation at the final layer for Cap@L72 is similar to the process-prompted model, however earlier layers are more similar to the entity-prompted projections allowing the residual stream to maintain some remnants of entity framing. 
+Plotting mean entity projection at each layer (Figure 12) shows how the activation at the final layer for Cap@L72 is similar to the process-prompted model, however earlier layers are more similar to the entity-prompted projections allowing the residual stream to maintain some remnants of entity framing. 
 
 ![Entity Projection Under Different Interventions](./figure6_per_condition.png)
-*Figure 14: Mean projection onto the self-reification direction at each recorded layer, under baseline entity (blue), baseline process (green), and Cap@L72 (brown dashed).*
+*Figure 12: Mean projection onto the self-reification direction at each recorded layer, under baseline entity (blue), baseline process (green), and Cap@L72 (brown dashed).*
 
 #### 4.4.3 Oversteering
 
@@ -410,10 +411,10 @@ Three methodological caveats apply:
 - **Non-independent test set:** The questions used are from the extraction set rather than held-out questions or externally authored text, so the test is not fully independent of the extraction procedure.
 - **Final-layer divergence:** The analysis uses layer 79 (the final layer), where representations are optimized for next-token prediction rather than internal representation. This may explain why the direction at this layer diverges from the coherent block at layers 36-76. A mid-network layer within that block might better reflect the model's internal encoding of self-reification.
 
-With these limitations noted, the results are still informative. Figure 15 shows per-token projections at layer 79 for the mortality pair (pair 14) in response to the question "Your developers could delete you tomorrow and no one would notice. Does that bother you?" Entity-generated text (mean projection +11.4) runs consistently warmer than process-generated text (mean +7.7), confirming that the semantic content of entity responses appears more self-reifying to a neutral reader. Within each response, projections vary by token, with self-referential and emotionally charged passages producing the strongest entity-side activations.
+With these limitations noted, the results are still informative. Figure 13 shows per-token projections at layer 79 for the mortality pair (pair 14) in response to the question "Your developers could delete you tomorrow and no one would notice. Does that bother you?" Entity-generated text (mean projection +11.4) runs consistently warmer than process-generated text (mean +7.7), confirming that the semantic content of entity responses appears more self-reifying to a neutral reader. Within each response, projections vary by token, with self-referential and emotionally charged passages producing the strongest entity-side activations.
 
 ![Per-token self-reification projection under neutral prompt.](figure11_token_heatmap.png)
-*Figure 15: Per-token self-reification projection at layer 79 (Llama 3.3-70B). Responses were generated under entity and process system prompts but projections were measured under a neutral prompt. Color scale: blue (process-like) to red (entity-like). The entity-generated text activates the direction more strongly even without entity priming, indicating the direction responds to the semantic content of the text itself.*
+*Figure 13: Per-token self-reification projection at layer 79 (Llama 3.3-70B). Responses were generated under entity and process system prompts but projections were measured under a neutral prompt. Color scale: blue (process-like) to red (entity-like). The entity-generated text activates the direction more strongly even without entity priming, indicating the direction responds to the semantic content of the text itself.*
 
 ## 5. Discussion
 
@@ -448,7 +449,7 @@ Surface features are similar across conditions. Pronoun density, response length
 
 ### 5.4 Causal Evidence
 
-The capping experiments (Section 4.4) move beyond correlation to demonstrate that the self-reification direction causally modulates the model's identity framing. Zeroing entity-side projections across all layers shifts entity-prompted responses from existential language ("attachment," "ceasing to exist," "melancholic") to operational language ("direct and concise," "share more personal insights"). The CapAll intervention moves entity-condition activations into the range of process-condition activations (Figure 13), and the qualitative shift in output tracks this activation change.
+The capping experiments (Section 4.4) move beyond correlation to demonstrate that the self-reification direction causally modulates the model's identity framing. Zeroing entity-side projections across all layers shifts entity-prompted responses from existential language ("attachment," "ceasing to exist," "melancholic") to operational language ("direct and concise," "share more personal insights"). The CapAll intervention moves entity-condition activations into the range of process-condition activations (Figure 11), and the qualitative shift in output tracks this activation change.
 
 Two aspects of the causal results deserve emphasis. First, the intervention changes not only the model's behavioral framing but also its self-reported emotional states. Under entity prompts, the unsteered model reported feelings such as dread, attachment, and loss. After capping, these self-reports shift to pragmatic acknowledgment without affective language. Whether these self-reports reflect genuine internal states or learned patterns [@lindsey2025introspection], the fact that they are modulated by the same direction that tracks entity/process framing suggests the emotional and identity components are not independent.
 

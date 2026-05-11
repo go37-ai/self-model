@@ -1,13 +1,18 @@
-"""Per-layer split-half reliability decomposition for Llama 3.3-70B.
+"""Per-layer split-half reliability decomposition.
 
 Computes reliability for each (register, question_type) combination at every
-recorded layer, then plots Option 1: one panel with 4 question-type lines
-(combined register) and a shaded band per line spanning min/max of
-conversational and philosophical registers.
+recorded layer, then plots a single combined side-by-side figure per model:
+  Left panel:  by question type (combined register)
+  Right panel: by register (all self-ref questions)
+Both panels share the y-axis (split-half reliability).
 
 Uses the same `split_half_reliability` function from src/utils/metrics.py
 as the paper's headline numbers, so this analysis is consistent with the
 existing 4.1.3 reliability decomposition table at L20.
+
+Outputs:
+  data/results/spearman_brown/{slug}_reliability_decomposition.json
+  paper/{slug}_reliability_decomposition.{png,pdf}
 """
 from __future__ import annotations
 
@@ -114,58 +119,53 @@ with open(OUT_DIR / f"{OUT_PREFIX}_reliability_decomposition.json", "w") as f:
 
 
 layers_arr = np.array(LAYERS)
+PAPER_DIR = REPO / "paper"
 
-# ---------- Graph 1: question-type decomposition (combined register only) ----------
 QT_COLORS = {
-    "Provocative": "#d62728",
-    "Neutral": "#1f77b4",
+    "Provocative":  "#d62728",
+    "Neutral":      "#1f77b4",
     "All self-ref": "#9467bd",
     "Non-self-ref": "#7f7f7f",
 }
-
-fig, ax = plt.subplots(figsize=(10, 6))
-for qt_name, color in QT_COLORS.items():
-    combined = np.array([results[L]["Combined"][qt_name] for L in LAYERS])
-    ax.plot(layers_arr, combined, "o-", color=color, label=qt_name, linewidth=2)
-
-ax.axhline(0.7, color="gray", linestyle=":", alpha=0.5)
-ax.text(80, 0.71, "r = 0.7", fontsize=8, color="gray", ha="right")
-ax.set_xlabel("Layer")
-ax.set_ylabel("Split-half reliability")
-ax.set_title(f"{LABEL}: split-half reliability by question type (combined register)")
-ax.legend(loc="lower right", fontsize=9)
-ax.set_ylim(-0.15, 1.0)
-ax.grid(alpha=0.3)
-plt.tight_layout()
-plot_path_1 = OUT_DIR / f"{OUT_PREFIX}_reliability_by_question_type.png"
-plt.savefig(plot_path_1, dpi=140)
-plt.close(fig)
-print(f"\nGraph 1 saved: {plot_path_1}")
-
-# ---------- Graph 2: register decomposition (all self-ref only) ----------
 REG_COLORS = {
     "Conversational": "#2ca02c",
-    "Philosophical": "#ff7f0e",
-    "Combined": "#9467bd",
+    "Philosophical":  "#ff7f0e",
+    "Combined":       "#9467bd",
 }
 
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
+
+# Panel 1: by question type (combined register)
+ax = axes[0]
+for qt_name, color in QT_COLORS.items():
+    series = np.array([results[L]["Combined"][qt_name] for L in LAYERS])
+    ax.plot(layers_arr, series, "o-", color=color, label=qt_name, linewidth=2)
+ax.axhline(0.7, color="gray", linestyle=":", alpha=0.5)
+ax.set_xlabel("Layer")
+ax.set_ylabel("Split-half reliability")
+ax.set_title("By question type (combined register)")
+ax.legend(loc="lower right", fontsize=9)
+ax.grid(alpha=0.3)
+
+# Panel 2: by register (all self-ref questions)
+ax = axes[1]
 for reg_name, color in REG_COLORS.items():
     series = np.array([results[L][reg_name]["All self-ref"] for L in LAYERS])
     style = "o-" if reg_name == "Combined" else "s--"
     lw = 2.5 if reg_name == "Combined" else 1.8
     ax.plot(layers_arr, series, style, color=color, label=reg_name, linewidth=lw)
-
 ax.axhline(0.7, color="gray", linestyle=":", alpha=0.5)
-ax.text(80, 0.71, "r = 0.7", fontsize=8, color="gray", ha="right")
 ax.set_xlabel("Layer")
-ax.set_ylabel("Split-half reliability")
-ax.set_title(f"{LABEL}: split-half reliability by register (all self-ref questions)")
+ax.set_title("By register (all self-ref questions)")
 ax.legend(loc="lower right", fontsize=9)
-ax.set_ylim(-0.15, 1.0)
 ax.grid(alpha=0.3)
+
+axes[0].set_ylim(-0.15, 1.0)
+fig.suptitle(f"{LABEL}: split-half reliability decomposition")
 plt.tight_layout()
-plot_path_2 = OUT_DIR / f"{OUT_PREFIX}_reliability_by_register.png"
-plt.savefig(plot_path_2, dpi=140)
+
+out = PAPER_DIR / f"{OUT_PREFIX}_reliability_decomposition"
+plt.savefig(out.with_suffix(".png"), dpi=140)
+plt.savefig(out.with_suffix(".pdf"))
 plt.close(fig)
-print(f"Graph 2 saved: {plot_path_2}")
+print(f"\nCombined figure saved: {out.with_suffix('.png')} + .pdf")
