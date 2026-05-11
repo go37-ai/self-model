@@ -409,6 +409,9 @@ def record_activations(
         # Decode the response text (everything past the prompt)
         response_text = tokenizer.decode(full_ids[input_len:], skip_special_tokens=True)
         response_texts.append(response_text)
+        # Log a short preview so cloud runs can be spot-checked from run.log
+        # without waiting for the end-of-phase JSON dump.
+        logger.info("Prompt %d response[:140]: %r", i, response_text[:140])
 
         # --- Pass 2: forward pass with hooks to capture activations ---
         cache.register_hooks()
