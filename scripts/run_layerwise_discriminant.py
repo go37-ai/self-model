@@ -102,7 +102,7 @@ def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
 
     for i, pair in enumerate(pairs):
         logger.info("  pair %d/%d (positive)", i + 1, len(pairs))
-        pos_acts = record_activations(
+        pos_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["positive"],
             layers=layers, max_new_tokens=max_new_tokens, token_position=token_position,
         )
@@ -111,7 +111,7 @@ def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
                 pos_per_layer[L].append(pos_acts[L])
 
         logger.info("  pair %d/%d (negative)", i + 1, len(pairs))
-        neg_acts = record_activations(
+        neg_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["negative"],
             layers=layers, max_new_tokens=max_new_tokens, token_position=token_position,
         )

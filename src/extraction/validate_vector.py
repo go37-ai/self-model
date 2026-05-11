@@ -160,12 +160,12 @@ def extract_confound_direction(
     neg_all = []
 
     for pair in pairs:
-        pos_acts = record_activations(
+        pos_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["positive"],
             layers=[layer], max_new_tokens=max_new_tokens,
             token_position=token_position,
         )
-        neg_acts = record_activations(
+        neg_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["negative"],
             layers=[layer], max_new_tokens=max_new_tokens,
             token_position=token_position,

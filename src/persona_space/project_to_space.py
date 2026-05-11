@@ -143,7 +143,7 @@ def extract_role_vectors(
     for i, (role_name, system_prompt) in enumerate(roles):
         logger.info("Extracting role %d/%d: %s", i + 1, len(roles), role_name)
 
-        activations = record_activations(
+        activations, _, _ = record_activations(
             model=model,
             tokenizer=tokenizer,
             prompts=questions,

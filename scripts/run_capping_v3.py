@@ -109,7 +109,7 @@ class OneSidedCapper:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["qwen2", "qwen3", "qwen72", "llama"], default="llama")
+    parser.add_argument("--model", choices=["qwen2", "qwen3", "qwen72", "llama", "gemma4MoE"], default="llama")
     parser.add_argument("--profile", choices=["local", "cloud"], default="cloud")
     parser.add_argument("--direction-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, default=Path("data/results/capping_v3"))

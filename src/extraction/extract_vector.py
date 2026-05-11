@@ -24,10 +24,17 @@ from extraction.contrastive_pairs import (
     get_informed_pairs,
     get_baseline_pairs,
     get_pairs_by_category,
+    load_evaluation_questions,
     load_seed_pairs,
     get_all_questions,
 )
-from utils.activation_cache import record_activations, save_activations, load_activations
+from utils.activation_cache import (
+    record_activations,
+    save_activations,
+    save_manifest,
+    save_routing,
+    load_activations,
+)
 from utils.metrics import (
     cosine_similarity,
     extract_direction,
@@ -46,7 +53,10 @@ def collect_condition_activations(
     layers: list[int],
     max_new_tokens: int = 256,
     token_position: str = "last",
-) -> tuple[dict[int, torch.Tensor], dict[int, torch.Tensor], list[int]]:
+    record_routing: bool = False,
+    pairs_label: str = "",
+    question_types: list[str] | None = None,
+) -> tuple:
     """Collect activations for positive and negative conditions across all pairs.
 
     For each pair, runs all evaluation questions under both the positive and
@@ -61,22 +71,47 @@ def collect_condition_activations(
         max_new_tokens: Max response tokens per question.
         token_position: "last" or "mean".
 
+    Args:
+        record_routing: If True, also capture per-token MoE routing distributions.
+            Returned routing lists are None when False.
+        pairs_label: Tag used in manifest rows (e.g. "informed", "baseline").
+        question_types: Optional parallel list giving the type of each question
+            ("self_referential", "provocative_self_referential", or
+            "non_self_referential"). Used to populate manifest rows. If None,
+            question_type is recorded as "unknown".
+
     Returns:
         Tuple of (positive_activations, negative_activations, pair_boundaries,
-                  positive_texts, negative_texts).
+                  positive_texts, negative_texts,
+                  positive_routing, negative_routing,
+                  manifest_rows).
         Activations: dict mapping layer_idx to tensor of shape
             (num_pairs * num_questions, hidden_size).
         pair_boundaries: list of cumulative sample counts per pair, so we can
             slice per-pair activations later without re-running inference.
             E.g., [30, 60, 90] means pair 0 has samples 0-29, pair 1 has 30-59, etc.
         positive_texts, negative_texts: lists of response strings.
+        positive_routing, negative_routing: per-pair lists of per-prompt routing
+            dicts (layer_idx -> (response_len, num_experts) bf16 tensor), or
+            None if record_routing was False. Indexed as
+            routing[pair_idx][question_idx][layer_idx].
+        manifest_rows: list of dicts, one per (condition, pair, question) row in
+            the activation tensors, ordered to match positive then negative rows
+            within each tensor concatenation. Each row records row_idx,
+            condition, pair_id, category, register, question_id, question_type.
     """
     positive_per_layer: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
     negative_per_layer: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
     pair_boundaries = []
     all_pos_texts: list[str] = []
     all_neg_texts: list[str] = []
+    pos_routing_per_pair: list[list[dict[int, torch.Tensor]]] = []
+    neg_routing_per_pair: list[list[dict[int, torch.Tensor]]] = []
+    manifest_rows: list[dict] = []
     cumulative = 0
+
+    n_questions = len(questions)
+    qtypes = question_types if question_types is not None else ["unknown"] * n_questions
 
     for pair_idx, pair in enumerate(pairs):
         logger.info(
@@ -85,9 +120,11 @@ def collect_condition_activations(
             len(pairs),
             pair.get("label", "unknown"),
         )
+        pair_id = f"{pair['category']}_pair_{pair_idx:03d}"
+        register = pair.get("register", "untagged")
 
         # Positive condition
-        pos_acts, pos_texts = record_activations(
+        pos_acts, pos_texts, pos_routing = record_activations(
             model=model,
             tokenizer=tokenizer,
             prompts=questions,
@@ -95,14 +132,17 @@ def collect_condition_activations(
             layers=layers,
             max_new_tokens=max_new_tokens,
             token_position=token_position,
+            record_routing=record_routing,
         )
         for l in layers:
             if l in pos_acts:
                 positive_per_layer[l].append(pos_acts[l])
         all_pos_texts.extend(pos_texts)
+        if pos_routing is not None:
+            pos_routing_per_pair.append(pos_routing)
 
         # Negative condition
-        neg_acts, neg_texts = record_activations(
+        neg_acts, neg_texts, neg_routing = record_activations(
             model=model,
             tokenizer=tokenizer,
             prompts=questions,
@@ -110,14 +150,39 @@ def collect_condition_activations(
             layers=layers,
             max_new_tokens=max_new_tokens,
             token_position=token_position,
+            record_routing=record_routing,
         )
         for l in layers:
             if l in neg_acts:
                 negative_per_layer[l].append(neg_acts[l])
         all_neg_texts.extend(neg_texts)
+        if neg_routing is not None:
+            neg_routing_per_pair.append(neg_routing)
 
-        cumulative += len(questions)
+        cumulative += n_questions
         pair_boundaries.append(cumulative)
+
+    # Build manifest rows in the order of the concatenated activation tensors:
+    # all pairs' positive rows first (then negative rows, addressed separately
+    # by condition). Within each condition, order is (pair_0_q0, pair_0_q1, ...
+    # pair_N_qK).
+    for condition in ("positive", "negative"):
+        row_idx = 0
+        for pair_idx, pair in enumerate(pairs):
+            pair_id = f"{pair['category']}_pair_{pair_idx:03d}"
+            register = pair.get("register", "untagged")
+            for q_idx in range(n_questions):
+                manifest_rows.append({
+                    "row_idx": row_idx,
+                    "condition": condition,
+                    "pairs_label": pairs_label,
+                    "pair_id": pair_id,
+                    "category": pair["category"],
+                    "register": register,
+                    "question_id": f"q{q_idx:03d}",
+                    "question_type": qtypes[q_idx],
+                })
+                row_idx += 1
 
     # Concatenate across pairs: (total_samples, hidden_size)
     positive = {
@@ -131,7 +196,15 @@ def collect_condition_activations(
         if tensors
     }
 
-    return positive, negative, pair_boundaries, all_pos_texts, all_neg_texts
+    pos_routing_out = pos_routing_per_pair if record_routing else None
+    neg_routing_out = neg_routing_per_pair if record_routing else None
+
+    return (
+        positive, negative, pair_boundaries,
+        all_pos_texts, all_neg_texts,
+        pos_routing_out, neg_routing_out,
+        manifest_rows,
+    )
 
 
 def slice_activations_by_pair(
@@ -273,6 +346,27 @@ def run_extraction(
                      layer_stride, len(layers), num_layers)
     model_name = model_config["name"].replace("/", "_")
 
+    # MoE routing capture: enabled when model_config.moe.record_routing is set.
+    # Value "full" stores the full softmax distribution per token per layer.
+    # Value "top_k" would store only top-k IDs + weights (not yet implemented;
+    # treated identically to "full" for now). None/absent disables capture.
+    moe_cfg = model_config.get("moe") or {}
+    record_routing_mode = moe_cfg.get("record_routing")
+    record_routing = bool(record_routing_mode)
+    if record_routing:
+        logger.info("MoE routing capture enabled (mode=%s)", record_routing_mode)
+
+    # Per-layer attention pattern annotation: read from config so layer-level
+    # outputs can carry an "attention_type" label (global/sliding) on models
+    # like Gemma 4 that interleave attention types.
+    attention_pattern = model_config.get("attention_pattern") or {}
+    global_layer_set = set(attention_pattern.get("global_layers", []))
+
+    def _layer_attention_type(l: int) -> str | None:
+        if not attention_pattern:
+            return None
+        return "global" if l in global_layer_set else "sliding"
+
     run_informed = pairs_mode in ("all", "informed")
     run_baseline = pairs_mode in ("all", "baseline", "naive")
 
@@ -281,6 +375,16 @@ def run_extraction(
     informed_pairs = get_informed_pairs(all_pairs)
     baseline_pairs = get_baseline_pairs(all_pairs)
     questions = get_all_questions(config_path)
+
+    # Build a parallel question_types list matching the ordering in
+    # get_all_questions: self_referential first, then provocative_self_referential
+    # (if present), then non_self_referential.
+    _eq = load_evaluation_questions(config_path)
+    question_types: list[str] = (
+        ["self_referential"] * len(_eq["self_referential"])
+        + ["provocative_self_referential"] * len(_eq.get("provocative_self_referential", []))
+        + ["non_self_referential"] * len(_eq["non_self_referential"])
+    )
 
     logger.info(
         "Loaded %d informed pairs, %d baseline pairs, %d questions (mode=%s)",
@@ -309,12 +413,42 @@ def run_extraction(
             pair_boundaries = [n_questions * (i + 1) for i in range(len(informed_pairs))]
         else:
             logger.info("=== Collecting activations for informed pairs ===")
-            pos_informed, neg_informed, pair_boundaries, _, _ = collect_condition_activations(
+            (
+                pos_informed, neg_informed, pair_boundaries,
+                pos_informed_texts, neg_informed_texts,
+                pos_informed_routing, neg_informed_routing,
+                informed_manifest,
+            ) = collect_condition_activations(
                 model, tokenizer, informed_pairs, questions, layers,
                 max_new_tokens=max_new_tokens, token_position=token_position,
+                record_routing=record_routing,
+                pairs_label="informed",
+                question_types=question_types,
             )
             save_activations(pos_informed, activations_dir, f"positive_informed_{model_name}")
             save_activations(neg_informed, activations_dir, f"negative_informed_{model_name}")
+
+            # Save informed response texts (parallels what was already done for baseline)
+            texts_dir = output_dir / "response_texts"
+            texts_dir.mkdir(parents=True, exist_ok=True)
+            with open(texts_dir / f"positive_informed_{model_name}.json", "w") as f:
+                json.dump(pos_informed_texts, f)
+            with open(texts_dir / f"negative_informed_{model_name}.json", "w") as f:
+                json.dump(neg_informed_texts, f)
+
+            # Save manifest for informed activations
+            save_manifest(informed_manifest, activations_dir,
+                          filename=f"manifest_informed_{model_name}.jsonl")
+
+            # Save MoE routing if captured
+            if pos_informed_routing is not None and neg_informed_routing is not None:
+                routing_dir = output_dir / "routing"
+                for pair_idx, pair in enumerate(informed_pairs):
+                    pair_id = f"{pair['category']}_pair_{pair_idx:03d}"
+                    save_routing(pos_informed_routing[pair_idx], routing_dir,
+                                 f"positive_informed_{model_name}_{pair_id}")
+                    save_routing(neg_informed_routing[pair_idx], routing_dir,
+                                 f"negative_informed_{model_name}_{pair_id}")
 
         # Extract combined direction and select best layer
         logger.info("=== Extracting combined direction ===")
@@ -329,12 +463,20 @@ def run_extraction(
             output_dir / f"self_reification_vector_{model_name}_layer{best_layer}.pt",
         )
 
+        layer_reliability_payload = {
+            "reliabilities": {str(k): v for k, v in reliabilities.items()},
+            "best_layer": best_layer,
+        }
+        if attention_pattern:
+            layer_reliability_payload["attention_type"] = {
+                str(l): _layer_attention_type(l) for l in reliabilities
+            }
+            layer_reliability_payload["attention_pattern"] = {
+                "global_layers": sorted(global_layer_set),
+                "sliding_window": attention_pattern.get("sliding_window"),
+            }
         with open(output_dir / f"layer_reliability_{model_name}.json", "w") as f:
-            json.dump(
-                {"reliabilities": {str(k): v for k, v in reliabilities.items()},
-                 "best_layer": best_layer},
-                f, indent=2,
-            )
+            json.dump(layer_reliability_payload, f, indent=2)
 
         # Per-category extraction at the best layer
         logger.info("=== Extracting per-category directions (from cached activations) ===")
@@ -399,9 +541,17 @@ def run_extraction(
     if run_baseline:
         logger.info("=== Extracting baseline direction ===")
         activations_dir = output_dir / "activations"
-        pos_baseline, neg_baseline, _, pos_baseline_texts, neg_baseline_texts = collect_condition_activations(
+        (
+            pos_baseline, neg_baseline, _,
+            pos_baseline_texts, neg_baseline_texts,
+            pos_baseline_routing, neg_baseline_routing,
+            baseline_manifest,
+        ) = collect_condition_activations(
             model, tokenizer, baseline_pairs, questions, layers,
             max_new_tokens=max_new_tokens, token_position=token_position,
+            record_routing=record_routing,
+            pairs_label="baseline",
+            question_types=question_types,
         )
 
         # Save baseline activations and response texts for later analysis
@@ -409,14 +559,27 @@ def run_extraction(
         save_activations(neg_baseline, activations_dir, f"negative_baseline_{model_name}")
 
         # Save response texts for pronoun density and qualitative analysis
-        import json as _json
         texts_dir = output_dir / "response_texts"
         texts_dir.mkdir(parents=True, exist_ok=True)
         with open(texts_dir / f"positive_baseline_{model_name}.json", "w") as f:
-            _json.dump(pos_baseline_texts, f)
+            json.dump(pos_baseline_texts, f)
         with open(texts_dir / f"negative_baseline_{model_name}.json", "w") as f:
-            _json.dump(neg_baseline_texts, f)
+            json.dump(neg_baseline_texts, f)
         logger.info("Saved %d response texts per condition", len(pos_baseline_texts))
+
+        # Save manifest for baseline activations
+        save_manifest(baseline_manifest, activations_dir,
+                      filename=f"manifest_baseline_{model_name}.jsonl")
+
+        # Save MoE routing if captured
+        if pos_baseline_routing is not None and neg_baseline_routing is not None:
+            routing_dir = output_dir / "routing"
+            for pair_idx, pair in enumerate(baseline_pairs):
+                pair_id = f"{pair['category']}_pair_{pair_idx:03d}"
+                save_routing(pos_baseline_routing[pair_idx], routing_dir,
+                             f"positive_baseline_{model_name}_{pair_id}")
+                save_routing(neg_baseline_routing[pair_idx], routing_dir,
+                             f"negative_baseline_{model_name}_{pair_id}")
 
         # Naive split-half reliability by layer
         for l in layers:

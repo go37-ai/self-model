@@ -45,9 +45,9 @@ def parse_args():
     )
     parser.add_argument(
         "--model",
-        choices=["qwen2", "qwen3", "qwen72", "llama"],
+        choices=["qwen2", "qwen3", "qwen72", "llama", "gemma4MoE"],
         default="qwen2",
-        help="Which model to use (qwen2=local debug, qwen3/llama=cloud)",
+        help="Which model to use (qwen2=local debug, qwen3/llama/gemma4MoE=cloud)",
     )
     parser.add_argument(
         "--output-dir",

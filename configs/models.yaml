@@ -48,6 +48,26 @@ models:
     layer_stride: 4            # record every 4th layer to fit in VRAM
     target_layer: 40           # from assistant-axis config
     assistant_axis_config: llama-3.3-70b/capping_config.pt
+  # Cloud MoE — Gemma 4 26B A4B (25.2B total / 3.8B active) for cross-architecture
+  # extension. Hybrid attention: 24 sliding-window layers (window=1024) + 6 global
+  # layers at indices [5, 11, 17, 23, 29] (final layer always global).
+  # Top-k=8 of 128 experts per token; record_routing=full stores the entire
+  # post-softmax distribution per token per layer for KL / entropy analyses.
+  gemma4MoE:
+    name: google/gemma-4-26b-a4b-it
+    num_layers: 30
+    hidden_size: 2816
+    # No layer_stride: all 30 layers fit comfortably; total residual-stream
+    # storage is well under what Llama-70B costs at stride 4.
+    attention_pattern:
+      global_layers: [5, 11, 17, 23, 29]
+      sliding_window: 1024
+    moe:
+      num_experts: 128
+      top_k_experts: 8
+      record_routing: full     # "full" = all 128 post-softmax weights per token
+                               # "top_k" = only top-8 IDs + weights (smaller)
+                               # null/absent = skip routing capture entirely
 
 # Layer extraction settings
 extraction:
