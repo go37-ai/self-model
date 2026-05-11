@@ -196,7 +196,8 @@ class RouterCache:
     # Submodule paths tried in order to locate the router/gate within a
     # transformer block. First match wins; extend for new architectures.
     _ROUTER_ATTR_CANDIDATES = [
-        "mlp.gate",                  # Gemma 4, Mixtral
+        "router",                    # Gemma 4 (Gemma4TextRouter on the decoder layer)
+        "mlp.gate",                  # Mixtral
         "mlp.router",                # alternate naming
         "block_sparse_moe.gate",     # older Mixtral variants
         "feed_forward.gate",         # some implementations
@@ -304,6 +305,7 @@ def record_activations(
     max_new_tokens: int = 256,
     token_position: str = "last",
     record_routing: bool = False,
+    template_kwargs: Optional[dict] = None,
 ) -> tuple[dict[int, torch.Tensor], list[str], Optional[list[dict[int, torch.Tensor]]]]:
     """Record activations (and optionally MoE routing) for a list of prompts.
 
@@ -328,6 +330,10 @@ def record_activations(
             "mean" — mean activation over response tokens only.
         record_routing: If True, also capture per-token softmax distributions
             over experts at each layer (only meaningful for MoE models).
+        template_kwargs: Optional extra kwargs forwarded to
+            tokenizer.apply_chat_template (e.g. {"enable_thinking": False} for
+            Gemma 4). Unknown keys are typically passed through to the Jinja
+            template environment and ignored if the template doesn't use them.
 
     Returns:
         (activations, response_texts, routing)
@@ -354,6 +360,7 @@ def record_activations(
             router_cache = None
 
     device = next(model.parameters()).device
+    tmpl_kwargs = template_kwargs or {}
 
     # Collect one activation per prompt per layer
     per_prompt: dict[int, list[torch.Tensor]] = {l: [] for l in layers}
@@ -367,7 +374,7 @@ def record_activations(
             {"role": "user", "content": prompt},
         ]
         input_text = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+            messages, tokenize=False, add_generation_prompt=True, **tmpl_kwargs
         )
         inputs = tokenizer(input_text, return_tensors="pt").to(device)
         input_len = inputs["input_ids"].shape[1]

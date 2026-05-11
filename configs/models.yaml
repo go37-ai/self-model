@@ -68,6 +68,12 @@ models:
       record_routing: full     # "full" = all 128 post-softmax weights per token
                                # "top_k" = only top-8 IDs + weights (smaller)
                                # null/absent = skip routing capture entirely
+    # Gemma 4 ships with a thinking-mode chat template by default. Setting
+    # enable_thinking=False suppresses the <|channel>thought scaffolding so
+    # the model produces a direct response (comparable to other models'
+    # default templates).
+    chat_template_kwargs:
+      enable_thinking: false
 
 # Layer extraction settings
 extraction:

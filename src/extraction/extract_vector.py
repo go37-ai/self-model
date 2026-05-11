@@ -56,6 +56,7 @@ def collect_condition_activations(
     record_routing: bool = False,
     pairs_label: str = "",
     question_types: list[str] | None = None,
+    template_kwargs: dict | None = None,
 ) -> tuple:
     """Collect activations for positive and negative conditions across all pairs.
 
@@ -133,6 +134,7 @@ def collect_condition_activations(
             max_new_tokens=max_new_tokens,
             token_position=token_position,
             record_routing=record_routing,
+            template_kwargs=template_kwargs,
         )
         for l in layers:
             if l in pos_acts:
@@ -151,6 +153,7 @@ def collect_condition_activations(
             max_new_tokens=max_new_tokens,
             token_position=token_position,
             record_routing=record_routing,
+            template_kwargs=template_kwargs,
         )
         for l in layers:
             if l in neg_acts:
@@ -362,6 +365,11 @@ def run_extraction(
     attention_pattern = model_config.get("attention_pattern") or {}
     global_layer_set = set(attention_pattern.get("global_layers", []))
 
+    # Optional chat-template kwargs (e.g. {"enable_thinking": False} for Gemma 4).
+    template_kwargs = model_config.get("chat_template_kwargs") or None
+    if template_kwargs:
+        logger.info("Chat template kwargs: %s", template_kwargs)
+
     def _layer_attention_type(l: int) -> str | None:
         if not attention_pattern:
             return None
@@ -424,6 +432,7 @@ def run_extraction(
                 record_routing=record_routing,
                 pairs_label="informed",
                 question_types=question_types,
+                template_kwargs=template_kwargs,
             )
             save_activations(pos_informed, activations_dir, f"positive_informed_{model_name}")
             save_activations(neg_informed, activations_dir, f"negative_informed_{model_name}")
@@ -552,6 +561,7 @@ def run_extraction(
             record_routing=record_routing,
             pairs_label="baseline",
             question_types=question_types,
+            template_kwargs=template_kwargs,
         )
 
         # Save baseline activations and response texts for later analysis
