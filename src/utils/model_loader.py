@@ -111,14 +111,18 @@ def load_model_and_tokenizer(
             bnb_4bit_use_double_quant=True,
         )
 
-    # Gemma 4 is a multimodal model. AutoModelForCausalLM maps gemma4 to the
-    # multimodal Gemma4ForConditionalGeneration wrapper, but the text decoder
-    # has its own causal LM class (Gemma4ForCausalLM). Load it directly so we
-    # avoid pulling vision/audio modules we don't use.
+    # Gemma 4 ships its weights under the multimodal Gemma4ForConditionalGeneration
+    # checkpoint (state dict prefixed with model.language_model.*). Loading the
+    # text-only Gemma4ForCausalLM class against this checkpoint silently
+    # initializes random weights because the prefixes don't match, so we load
+    # the multimodal class and use it for text-only inference. The vision
+    # and audio modules sit in VRAM (~1-2 GB) but never fire on text input.
+    # Hooks attach to model.model.language_model.layers (handled by the
+    # ActivationCache layer-path probe).
     if "gemma-4" in model_name.lower():
-        from transformers import Gemma4ForCausalLM
-        logger.info("Loading Gemma 4 via Gemma4ForCausalLM (text-only)")
-        model = Gemma4ForCausalLM.from_pretrained(model_name, **model_kwargs)
+        from transformers import Gemma4ForConditionalGeneration
+        logger.info("Loading Gemma 4 via Gemma4ForConditionalGeneration (multimodal wrapper)")
+        model = Gemma4ForConditionalGeneration.from_pretrained(model_name, **model_kwargs)
     else:
         model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)

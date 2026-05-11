@@ -68,10 +68,17 @@ class ActivationCache:
     def _find_layers(self, model: PreTrainedModel) -> list:
         """Find the list of transformer layer modules in the model.
 
-        Supports Qwen2, Llama, and other common HuggingFace architectures.
+        Supports Qwen2, Llama, Gemma 4 multimodal wrapper, and other common
+        HuggingFace architectures.
         """
-        # Common attribute paths for transformer layers
-        for attr_path in ["model.layers", "transformer.h", "gpt_neox.layers"]:
+        # Common attribute paths for transformer layers. Try multimodal-nested
+        # paths first since they're more specific (Gemma 4 ForConditionalGeneration).
+        for attr_path in [
+            "model.language_model.layers",  # Gemma 4 multimodal (text decoder nested)
+            "model.layers",                  # Qwen2, Llama, most causal LMs
+            "transformer.h",                 # GPT-2 family
+            "gpt_neox.layers",               # GPT-NeoX
+        ]:
             obj = model
             try:
                 for attr in attr_path.split("."):
