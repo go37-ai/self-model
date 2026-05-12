@@ -13,8 +13,9 @@ RESULTS = ROOT / "data" / "results" / "layerwise_discriminant"
 PAPER = ROOT / "paper"
 
 MODELS = [
-    ("Llama 3.3-70B", "meta-llama_Llama-3.3-70B-Instruct", "o", "#1f77b4"),
-    ("Qwen 2.5-72B",  "Qwen_Qwen2.5-72B-Instruct",         "s", "#d62728"),
+    ("Llama 3.3-70B",      "meta-llama_Llama-3.3-70B-Instruct", "o", "#1f77b4"),
+    ("Qwen 2.5-72B",       "Qwen_Qwen2.5-72B-Instruct",         "s", "#d62728"),
+    ("Gemma 4 26B A4B-it", "google_gemma-4-26b-a4b-it",         "^", "#2ca02c"),
 ]
 
 

@@ -22,8 +22,9 @@ RESULTS = ROOT / "data" / "results" / "spearman_brown"
 PAPER = ROOT / "paper"
 
 MODELS = {
-    "Llama 3.3-70B": ("llama", 80),
-    "Qwen 2.5-72B":  ("qwen",  80),
+    "Llama 3.3-70B":      ("llama",     80),
+    "Qwen 2.5-72B":       ("qwen",      80),
+    "Gemma 4 26B A4B-it": ("gemma4moe", 30),
 }
 
 

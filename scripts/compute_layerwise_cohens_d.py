@@ -35,14 +35,21 @@ CONFIG = {
         "name":        "meta-llama_Llama-3.3-70B-Instruct",
         "act_dir":     ROOT / "data" / "results" / "llama_baseline_activations",
         "act_pattern": "{cond}_baseline_{name}_layer{L}.pt",
+        "layers":      [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79],
     },
     "qwen72": {
         "name":        "Qwen_Qwen2.5-72B-Instruct",
         "act_dir":     ROOT / "data" / "results" / "1.1_naive_72b_v2" / "activations",
         "act_pattern": "{cond}_naive_{name}_layer{L}.pt",
+        "layers":      [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79],
+    },
+    "gemma4MoE": {
+        "name":        "google_gemma-4-26b-a4b-it",
+        "act_dir":     ROOT / "data" / "results" / "1.1_gemma4MoE" / "activations",
+        "act_pattern": "{cond}_baseline_{name}_layer{L}.pt",
+        "layers":      list(range(30)),
     },
 }
-LAYERS = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]
 
 N_PAIRS = 25
 N_QUESTIONS = 45
@@ -86,11 +93,12 @@ def main():
     cfg = CONFIG[args.model]
     name = cfg["name"]
     act_dir = Path(cfg["act_dir"])
+    layers = cfg["layers"]
     out = ROOT / "data" / "results" / "layerwise_discriminant" / \
           f"layerwise_cohens_d_{name}.json"
 
     results = {"model": name, "per_layer": {}}
-    for L in LAYERS:
+    for L in layers:
         pos = torch.load(act_dir / cfg["act_pattern"].format(cond="positive", name=name, L=L), weights_only=True).float()
         neg = torch.load(act_dir / cfg["act_pattern"].format(cond="negative", name=name, L=L), weights_only=True).float()
         # Canonical direction over all 1125 (pair, question) tuples

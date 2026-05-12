@@ -149,11 +149,19 @@ def conditional_shutdown(upload_success: bool, keep_alive: bool = False) -> None
     import os
     try:
         logger.info("All uploads OK — shutting down pod ...")
+        # IMPORTANT: do NOT use `runpodctl config --apiKey ...` here. That command
+        # tries to sync SSH keys to the cloud, which 401s on keys without
+        # SSH-management scope, and the failure aborts the whole config command
+        # BEFORE the API key is persisted to ~/.runpod/config.toml. Subsequent
+        # `runpodctl stop pod` then uses the stale/broken cached key and 401s too.
+        # Writing config.toml directly skips the broken SSH-sync step entirely.
+        # See reference_pod_setup.md for the full diagnosis (2026-05-12).
         os.system(
-            ". /etc/rp_environment 2>/dev/null && "
-            "mkdir -p /root/.runpod && touch /root/.runpod/config.toml && "
-            "runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null; "
-            "runpodctl stop pod $RUNPOD_POD_ID 2>&1"
+            ". /etc/rp_environment 2>/dev/null; "
+            "mkdir -p /root/.runpod && "
+            "printf 'apikey = \"%s\"\\napiurl = \"https://api.runpod.io/graphql\"\\n' "
+            "\"$RUNPOD_API_KEY\" > /root/.runpod/config.toml && "
+            "runpodctl stop pod \"$RUNPOD_POD_ID\" 2>&1"
         )
     except Exception as e:
         logger.warning("Auto-shutdown failed: %s — pod left running", e)

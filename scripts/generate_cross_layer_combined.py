@@ -32,6 +32,9 @@ CONFIG = [
     ("Qwen 2.5-72B-Instruct", "Qwen_Qwen2.5-72B-Instruct",
      ROOT / "data" / "results" / "1.1_naive_72b_v2" / "activations",
      "{cond}_naive_{name}_layer{L}.pt", "qwen"),
+    ("Gemma 4 26B A4B-it", "google_gemma-4-26b-a4b-it",
+     ROOT / "data" / "results" / "1.1_gemma4MoE" / "activations",
+     "{cond}_baseline_{name}_layer{L}.pt", "gemma4moe"),
 ]
 
 

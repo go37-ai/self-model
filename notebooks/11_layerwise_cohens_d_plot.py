@@ -17,8 +17,9 @@ RESULTS = ROOT / "data" / "results" / "layerwise_discriminant"
 PAPER = ROOT / "paper"
 
 MODELS = {
-    "Llama 3.3-70B": ("meta-llama_Llama-3.3-70B-Instruct", "llama", 80),
-    "Qwen 2.5-72B":  ("Qwen_Qwen2.5-72B-Instruct",         "qwen",  80),
+    "Llama 3.3-70B":      ("meta-llama_Llama-3.3-70B-Instruct", "llama",     80),
+    "Qwen 2.5-72B":       ("Qwen_Qwen2.5-72B-Instruct",         "qwen",      80),
+    "Gemma 4 26B A4B-it": ("google_gemma-4-26b-a4b-it",         "gemma4moe", 30),
 }
 
 QT_STYLE = {

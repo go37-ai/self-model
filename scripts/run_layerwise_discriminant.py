@@ -44,8 +44,9 @@ logger = logging.getLogger(__name__)
 
 # Model -> (S3 bucket path for stored extraction activations, model name as appears in filenames)
 S3_BASELINE = {
-    "llama":  "s3://go37-ai/self-model-results/meta-llama_Llama-3.3-70B-Instruct/2026-03-31_1516/1.1_baseline/activations",
-    "qwen72": "s3://go37-ai/self-model-results/Qwen_Qwen2.5-72B-Instruct/2026-03-30_2243/1.1_baseline/activations",
+    "llama":     "s3://go37-ai/self-model-results/meta-llama_Llama-3.3-70B-Instruct/2026-03-31_1516/1.1_baseline/activations",
+    "qwen72":    "s3://go37-ai/self-model-results/Qwen_Qwen2.5-72B-Instruct/2026-03-30_2243/1.1_baseline/activations",
+    "gemma4MoE": "s3://go37-ai/self-model-results/google_gemma-4-26b-a4b-it/2026-05-11_2252_all/activations",
 }
 
 
@@ -91,7 +92,8 @@ def extract_self_reif_directions(activations_dir: Path, model_name: str,
 def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
                                   questions: list[str], layers: list[int],
                                   max_new_tokens: int = 256,
-                                  token_position: str = "last") -> dict[int, torch.Tensor]:
+                                  token_position: str = "last",
+                                  template_kwargs: dict | None = None) -> dict[int, torch.Tensor]:
     """Extract one confound direction per layer from a set of contrastive pairs.
 
     Records activations at all layers in a single forward pass per (pair, condition).
@@ -105,6 +107,7 @@ def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
         pos_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["positive"],
             layers=layers, max_new_tokens=max_new_tokens, token_position=token_position,
+            template_kwargs=template_kwargs,
         )
         for L in layers:
             if L in pos_acts:
@@ -114,6 +117,7 @@ def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
         neg_acts, _, _ = record_activations(
             model, tokenizer, questions, pair["negative"],
             layers=layers, max_new_tokens=max_new_tokens, token_position=token_position,
+            template_kwargs=template_kwargs,
         )
         for L in layers:
             if L in neg_acts:
@@ -129,10 +133,11 @@ def extract_confound_all_layers(model, tokenizer, pairs: list[dict],
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", choices=["qwen2", "qwen3", "qwen72", "llama"], required=True)
+    parser.add_argument("--model", choices=["qwen2", "qwen3", "qwen72", "llama", "gemma4MoE"], required=True)
     parser.add_argument("--profile", choices=["local", "cloud"], default="cloud")
     parser.add_argument("--stride", type=int, default=4,
-                        help="Layer stride (default 4 — match the main extraction).")
+                        help="Layer stride (default 4 — match the main extraction). "
+                             "Set to 1 for full coverage on smaller models like Gemma 4 (30 layers).")
     parser.add_argument("--n-questions", type=int, default=10,
                         help="Number of self-ref questions to use for confound extraction (matches the original Table 2 protocol of using questions[:10]).")
     parser.add_argument("--max-new-tokens", type=int, default=256)
@@ -179,15 +184,23 @@ def main():
     # 5. Extract confidence + formality directions at each layer
     logger.info("=== Step 3/3: extract confidence and formality directions per layer ===")
 
+    # Pass through any model-specific chat-template kwargs (e.g. enable_thinking=False
+    # for Gemma 4) so generation matches the main extraction setup.
+    tmpl_kwargs = model_config.get("chat_template_kwargs") or None
+    if tmpl_kwargs:
+        logger.info("Chat template kwargs: %s", tmpl_kwargs)
+
     logger.info("--- confidence ---")
     confidence_dirs = extract_confound_all_layers(
         model, tokenizer, CONFIDENCE_PAIRS, confound_questions, layers,
         max_new_tokens=args.max_new_tokens,
+        template_kwargs=tmpl_kwargs,
     )
     logger.info("--- formality ---")
     formality_dirs = extract_confound_all_layers(
         model, tokenizer, FORMALITY_PAIRS, confound_questions, layers,
         max_new_tokens=args.max_new_tokens,
+        template_kwargs=tmpl_kwargs,
     )
 
     # 6. Compute per-layer cosines

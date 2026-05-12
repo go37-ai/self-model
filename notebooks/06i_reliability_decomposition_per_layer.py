@@ -31,7 +31,7 @@ sys.path.insert(0, str(REPO))
 from src.utils.metrics import split_half_reliability  # noqa: E402
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", choices=["llama", "qwen"], default="llama")
+parser.add_argument("--model", choices=["llama", "qwen", "gemma4moe"], default="llama")
 args = parser.parse_args()
 
 if args.model == "llama":
@@ -40,12 +40,18 @@ if args.model == "llama":
     ACT_PREFIX = "baseline"
     LABEL = "Llama 3.3-70B"
     OUT_PREFIX = "llama"
-else:  # qwen
+elif args.model == "qwen":
     ACT_DIR = REPO / "data/results/1.1_naive_72b_v2/activations"
     MODEL = "Qwen_Qwen2.5-72B-Instruct"
     ACT_PREFIX = "naive"
     LABEL = "Qwen 2.5-72B"
     OUT_PREFIX = "qwen"
+else:  # gemma4moe
+    ACT_DIR = REPO / "data/results/1.1_gemma4MoE/activations"
+    MODEL = "google_gemma-4-26b-a4b-it"
+    ACT_PREFIX = "baseline"
+    LABEL = "Gemma 4 26B A4B-it"
+    OUT_PREFIX = "gemma4moe"
 
 NUM_PAIRS = 25
 NUM_QUESTIONS = 45

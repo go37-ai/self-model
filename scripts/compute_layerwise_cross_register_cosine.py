@@ -27,10 +27,16 @@ sys.path.insert(0, str(ROOT))
 from src.utils.metrics import cosine_similarity, extract_direction
 
 CONFIG = {
-    "llama":  {"name": "meta-llama_Llama-3.3-70B-Instruct", "act_dir": "/tmp/verify_activations"},
-    "qwen72": {"name": "Qwen_Qwen2.5-72B-Instruct",         "act_dir": "/tmp/qwen_activations"},
+    "llama":     {"name": "meta-llama_Llama-3.3-70B-Instruct",
+                  "act_dir": "/tmp/verify_activations",
+                  "layers": [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]},
+    "qwen72":    {"name": "Qwen_Qwen2.5-72B-Instruct",
+                  "act_dir": "/tmp/qwen_activations",
+                  "layers": [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]},
+    "gemma4MoE": {"name": "google_gemma-4-26b-a4b-it",
+                  "act_dir": str(ROOT / "data" / "results" / "1.1_gemma4MoE" / "activations"),
+                  "layers": list(range(30))},
 }
-LAYERS = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]
 
 N_PAIRS = 25
 N_CONV = 15      # pairs 0..14 = conversational
@@ -50,6 +56,7 @@ def main():
     cfg = CONFIG[args.model]
     name = cfg["name"]
     act_dir = Path(cfg["act_dir"])
+    layers = cfg["layers"]
     out = ROOT / "data" / "results" / "layerwise_discriminant" / \
           f"layerwise_cross_register_cosine_{name}.json"
 
@@ -57,7 +64,7 @@ def main():
     pair_phil = list(range(N_CONV, N_PAIRS))
 
     results = {"model": name, "per_layer": {}}
-    for L in LAYERS:
+    for L in layers:
         pos = torch.load(act_dir / f"positive_baseline_{name}_layer{L}.pt", weights_only=True).float()
         neg = torch.load(act_dir / f"negative_baseline_{name}_layer{L}.pt", weights_only=True).float()
         dir_conv = extract_direction(slice_pairs(pos, pair_conv), slice_pairs(neg, pair_conv))
