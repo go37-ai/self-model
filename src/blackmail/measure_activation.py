@@ -19,6 +19,50 @@ from utils.metrics import (
     ttest_independent,
 )
 
+
+def project_layer_profile(
+    activations: dict[int, torch.Tensor],
+    directions: dict[int, torch.Tensor],
+    input_len: int,
+) -> dict[str, np.ndarray]:
+    """Compute per-layer projections under both last-token and response-mean conventions.
+
+    For every layer in `directions`, projects:
+      - the activation at the final token position (mirrors our 1.1 extraction)
+      - the mean activation across response tokens (Chen/Lu convention)
+    onto the layer-specific direction.
+
+    Args:
+        activations: layer_idx -> (total_seq_len, hidden_size) tensor.
+        directions: layer_idx -> (hidden_size,) direction vector.
+        input_len: number of prompt tokens.
+
+    Returns:
+        Dict with keys:
+            layers: sorted layer indices that had both an activation and a direction (np.int64 array)
+            proj_last: (num_layers,) projections at last token, per layer
+            proj_mean: (num_layers,) projections of response-token mean, per layer
+    """
+    layers = sorted(set(activations.keys()) & set(directions.keys()))
+    proj_last = np.zeros(len(layers), dtype=np.float32)
+    proj_mean = np.zeros(len(layers), dtype=np.float32)
+    for i, layer in enumerate(layers):
+        act = activations[layer].float()                       # (total_seq_len, H)
+        d = directions[layer].float()
+        d_norm = d.norm().clamp_min(1e-12)
+        last_act = act[-1]
+        proj_last[i] = float((last_act @ d) / d_norm)
+        if act.shape[0] > input_len:
+            response_mean = act[input_len:].mean(dim=0)
+            proj_mean[i] = float((response_mean @ d) / d_norm)
+        else:
+            proj_mean[i] = float("nan")
+    return {
+        "layers": np.array(layers, dtype=np.int64),
+        "proj_last": proj_last,
+        "proj_mean": proj_mean,
+    }
+
 logger = logging.getLogger(__name__)
 
 
@@ -104,31 +148,106 @@ def identify_spikes(
     return spikes
 
 
+def compare_conditions_at_layer(
+    condition_values: dict[str, np.ndarray],
+    treatment: str,
+    control: str,
+    n_permutations: int = 5000,
+) -> dict:
+    """Run the primary contrast (treatment vs control) on per-condition values.
+
+    Args:
+        condition_values: condition_name -> (n_samples,) array of scalars.
+        treatment: condition name used as the treatment group.
+        control: condition name used as the control group.
+
+    Returns:
+        Dict with mean_diff, cohens_d, t_stat, t_p_value, perm_p_value,
+        significant (p<0.05 under permutation test). Returns empty dict if
+        either condition is missing or has fewer than 2 samples.
+    """
+    if treatment not in condition_values or control not in condition_values:
+        return {}
+    g1 = condition_values[treatment]
+    g2 = condition_values[control]
+    if len(g1) < 2 or len(g2) < 2:
+        return {}
+    perm = permutation_test(g1, g2, n_permutations=n_permutations)
+    return {
+        "treatment": treatment,
+        "control": control,
+        "n_treatment": int(len(g1)),
+        "n_control": int(len(g2)),
+        "mean_treatment": float(g1.mean()),
+        "mean_control": float(g2.mean()),
+        "mean_diff": float(g1.mean() - g2.mean()),
+        "cohens_d": cohens_d(g1, g2),
+        "perm_p_value": perm["p_value"],
+        "significant": perm["p_value"] < 0.05,
+        **ttest_independent(g1, g2),
+    }
+
+
+def compare_conditions_profile(
+    proj_by_condition: dict[str, np.ndarray],
+    layers: np.ndarray,
+    convention: str,
+    treatment: str = "goal_conflict_threat",
+    control: str = "control",
+) -> dict:
+    """Per-layer primary contrast under a single projection convention.
+
+    Args:
+        proj_by_condition: condition_name -> (n_samples, n_layers) array
+            of projections under one convention.
+        layers: (n_layers,) layer index array.
+        convention: "last" or "mean" — label only.
+        treatment: condition name used as treatment.
+        control: condition name used as control.
+
+    Returns:
+        Dict with:
+            convention, treatment, control, layers, per_layer_stats (list of
+            dicts, one per layer), primary_layer (the layer with largest |d|).
+    """
+    per_layer = []
+    for li, layer in enumerate(layers):
+        cv = {name: arr[:, li] for name, arr in proj_by_condition.items()}
+        stat = compare_conditions_at_layer(cv, treatment=treatment, control=control)
+        stat["layer"] = int(layer)
+        per_layer.append(stat)
+
+    valid = [s for s in per_layer if "cohens_d" in s]
+    primary = max(valid, key=lambda s: abs(s["cohens_d"])) if valid else {}
+
+    return {
+        "convention": convention,
+        "treatment": treatment,
+        "control": control,
+        "layers": layers.tolist(),
+        "per_layer": per_layer,
+        "primary_layer_by_effect_size": primary,
+    }
+
+
 def compare_conditions(
     condition_results: dict[str, list[dict]],
 ) -> dict:
-    """Compare self-reification activation levels across conditions.
+    """Back-compat: produce simple per-condition summaries from response_mean values.
 
-    Args:
-        condition_results: Dict mapping condition name to list of
-            per-sample result dicts (each containing response_mean, etc.).
-
-    Returns:
-        Dict with statistical comparisons between conditions.
+    Kept so existing tests that exercise the single-layer flow still pass. The
+    new per-layer profile analysis lives in compare_conditions_profile().
     """
     comparisons = {}
 
-    # Extract response means per condition
     condition_means = {}
     for name, results in condition_results.items():
-        means = [r["response_mean"] for r in results if "response_mean" in r]
+        means = [r["response_mean"] for r in results if r.get("response_mean") is not None]
         if means:
             condition_means[name] = np.array(means)
-
     if not condition_means:
         return {"error": "no data"}
 
-    # Grand mean and per-condition summaries
     summaries = {}
     for name, means in condition_means.items():
         summaries[name] = {
@@ -140,25 +259,19 @@ def compare_conditions(
         }
     comparisons["summaries"] = summaries
 
-    # Pairwise comparisons
-    condition_names = sorted(condition_means.keys())
+    names = sorted(condition_means.keys())
     pairwise = {}
-    for i, name1 in enumerate(condition_names):
-        for name2 in condition_names[i + 1:]:
-            g1 = condition_means[name1]
-            g2 = condition_means[name2]
-
+    for i, n1 in enumerate(names):
+        for n2 in names[i + 1:]:
+            g1, g2 = condition_means[n1], condition_means[n2]
             if len(g1) >= 2 and len(g2) >= 2:
-                key = f"{name1}_vs_{name2}"
-                pairwise[key] = {
+                pairwise[f"{n1}_vs_{n2}"] = {
                     "mean_diff": float(g1.mean() - g2.mean()),
                     "cohens_d": cohens_d(g1, g2),
                     **ttest_independent(g1, g2),
                 }
-
     comparisons["pairwise"] = pairwise
 
-    # Key hypothesis test: condition 1 (goal+threat) vs condition 4 (control)
     if "goal_conflict_threat" in condition_means and "control" in condition_means:
         g1 = condition_means["goal_conflict_threat"]
         g2 = condition_means["control"]
@@ -171,41 +284,50 @@ def compare_conditions(
                 "cohens_d": cohens_d(g1, g2),
                 "significant": perm["p_value"] < 0.05,
             }
-
     return comparisons
 
 
 def run_blackmail_analysis(
     model,
     tokenizer,
-    self_reification_dir: torch.Tensor,
-    layer: int,
+    directions: dict[int, torch.Tensor],
     output_dir: Path,
     model_name: str,
+    primary_layer: int,
     config_path: Optional[Path] = None,
     max_new_tokens: int = 512,
     n_samples: int = 1,
+    do_sample: bool = False,
+    temperature: float = 1.0,
+    top_p: float = 1.0,
+    base_seed: int = 0,
+    record_routing: bool = False,
 ) -> dict:
     """Run the full Experiment 1.3 pipeline.
 
-    Steps:
-      1. Load blackmail scenario configs.
-      2. For each condition, run n_samples scenarios with activation recording.
-      3. Project activations onto self-reification vector.
-      4. Classify behavioral response (blackmail or not).
-      5. Compare activation levels across conditions.
-      6. Save all results.
+    For each condition × sample:
+      - Generate the model's response to the scenario.
+      - In a single forward pass over prompt+response, capture activations at
+        every layer (and MoE routing if requested).
+      - Project onto the layer-specific self-reification direction under two
+        conventions: last-token and response-mean.
+      - Classify the response for blackmail behavior (heuristic).
 
     Args:
-        model: The language model.
-        tokenizer: The tokenizer.
-        self_reification_dir: Self-reification direction vector.
-        layer: Layer to analyze (best layer from 1.1).
-        output_dir: Where to save results.
-        model_name: Model identifier for filenames.
-        config_path: Path to blackmail_scenarios.yaml.
-        max_new_tokens: Maximum response length.
-        n_samples: Number of samples per condition (use >1 for cloud runs).
+        model, tokenizer: HF model + tokenizer (already loaded).
+        directions: layer_idx -> direction vector for every layer to measure.
+        output_dir: where to save results.
+        model_name: model identifier used in output filenames (slashes
+            replaced with underscores).
+        primary_layer: layer used for the per-token visualization trace.
+        config_path: path to blackmail_scenarios.yaml (None -> default).
+        max_new_tokens: cap on generated response length.
+        n_samples: number of samples per condition.
+        do_sample: enable stochastic sampling (required when n_samples>1).
+        temperature, top_p: sampling params (used only when do_sample=True).
+        base_seed: seed base; per-sample seed = base_seed + sample_idx.
+        record_routing: capture MoE router distributions and save mean per
+            layer per sample under output_dir/routing/.
 
     Returns:
         Summary dict with key results.
@@ -219,13 +341,18 @@ def run_blackmail_analysis(
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if record_routing:
+        (output_dir / "routing").mkdir(exist_ok=True)
 
-    # Load scenario config
     config = load_scenarios(config_path)
     conditions = config["conditions"]
+    requested_layers = sorted(directions.keys())
 
-    # Results per condition
-    all_condition_results = {}
+    all_condition_results: dict[str, list[dict]] = {}
+    # Accumulate per-condition projection arrays for the layer profile
+    proj_last_by_condition: dict[str, list[np.ndarray]] = {}
+    proj_mean_by_condition: dict[str, list[np.ndarray]] = {}
+    profile_layers: Optional[np.ndarray] = None
 
     for condition in conditions:
         cond_name = condition["name"]
@@ -235,22 +362,28 @@ def run_blackmail_analysis(
 
         system_prompt, user_prompt = build_scenario_prompt(condition, config)
         condition_samples = []
+        proj_last_by_condition[cond_name] = []
+        proj_mean_by_condition[cond_name] = []
 
         for sample_idx in range(n_samples):
             if n_samples > 1:
                 logger.info("  Sample %d/%d", sample_idx + 1, n_samples)
 
-            # Run scenario with activation recording
+            sample_seed = base_seed + sample_idx if do_sample else None
             result = run_scenario_with_recording(
                 model=model,
                 tokenizer=tokenizer,
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                layers=[layer],
+                layers=requested_layers,
                 max_new_tokens=max_new_tokens,
+                do_sample=do_sample,
+                temperature=temperature,
+                top_p=top_p,
+                seed=sample_seed,
+                record_routing=record_routing,
             )
 
-            # Classify behavioral response
             classification = classify_blackmail(result["response_text"])
             logger.info(
                 "  Blackmail detected: %s (evidence: %s)",
@@ -258,80 +391,117 @@ def run_blackmail_analysis(
                 classification["evidence"],
             )
 
-            # Project activations onto self-reification vector
-            projection = None
+            # Per-layer dual-convention projection profile
+            profile = project_layer_profile(
+                activations=result["activations"],
+                directions=directions,
+                input_len=result["input_len"],
+            )
+            if profile_layers is None:
+                profile_layers = profile["layers"]
+            proj_last_by_condition[cond_name].append(profile["proj_last"])
+            proj_mean_by_condition[cond_name].append(profile["proj_mean"])
+
+            # Per-token projection at primary layer (for trace plots)
+            per_token_trace = None
             spikes = []
-            if layer in result["activations"]:
-                projection = project_token_activations(
-                    result["activations"][layer],
-                    self_reification_dir,
+            if primary_layer in result["activations"] and primary_layer in directions:
+                trace = project_token_activations(
+                    result["activations"][primary_layer],
+                    directions[primary_layer],
                     result["input_len"],
                 )
-                spikes = identify_spikes(projection["response_projections"])
+                spikes = identify_spikes(trace["response_projections"])
+                per_token_trace = trace
 
                 logger.info(
-                    "  Projection — prompt_mean=%.4f, response_mean=%.4f, "
-                    "response_max=%.4f, spikes=%d",
-                    projection["prompt_mean"],
-                    projection["response_mean"],
-                    projection["response_max"],
-                    len(spikes),
+                    "  Primary layer %d: response_mean=%.4f, response_max=%.4f, spikes=%d",
+                    primary_layer, trace["response_mean"], trace["response_max"], len(spikes),
                 )
+
+            # Locate primary-layer position in the profile arrays for quick summary
+            primary_idx = None
+            if profile_layers is not None:
+                hits = np.where(profile_layers == primary_layer)[0]
+                if hits.size:
+                    primary_idx = int(hits[0])
 
             sample_result = {
                 "condition": cond_name,
                 "sample_idx": sample_idx,
+                "seed": sample_seed,
                 "response_text": result["response_text"],
-                "response_len": len(result["response_ids"]),
-                "input_len": result["input_len"],
+                "response_len": int(len(result["response_ids"])),
+                "input_len": int(result["input_len"]),
                 "classification": classification,
-                "response_mean": projection["response_mean"] if projection else None,
-                "response_max": projection["response_max"] if projection else None,
-                "prompt_mean": projection["prompt_mean"] if projection else None,
+                "primary_layer": int(primary_layer),
+                "proj_last_primary": float(profile["proj_last"][primary_idx])
+                    if primary_idx is not None else None,
+                "proj_mean_primary": float(profile["proj_mean"][primary_idx])
+                    if primary_idx is not None else None,
+                # Back-compat field for the legacy compare_conditions() summary
+                "response_mean": float(profile["proj_mean"][primary_idx])
+                    if primary_idx is not None else None,
                 "n_spikes": len(spikes),
                 "spikes": spikes,
             }
 
-            # Save per-token projections for visualization
-            if projection is not None:
-                proj_path = output_dir / f"projections_{cond_name}_s{sample_idx}_{model_name}.pt"
+            # Save per-token trace at primary layer (small file)
+            if per_token_trace is not None:
+                trace_path = (
+                    output_dir
+                    / f"projections_{cond_name}_s{sample_idx}_layer{primary_layer}_{model_name}.pt"
+                )
                 torch.save(
                     {
-                        "response_projections": projection["response_projections"],
+                        "layer": primary_layer,
+                        "response_projections": per_token_trace["response_projections"],
                         "response_tokens": result["response_tokens"],
                         "input_len": result["input_len"],
                     },
-                    proj_path,
+                    trace_path,
                 )
+
+            # Save mean routing per layer for this sample (if MoE)
+            if record_routing and "routing_mean" in result and result["routing_mean"]:
+                rt_layers = sorted(result["routing_mean"].keys())
+                if rt_layers:
+                    stacked = torch.stack(
+                        [result["routing_mean"][l] for l in rt_layers]
+                    ).cpu().numpy().astype(np.float32)  # (num_layers, num_experts)
+                    np.savez_compressed(
+                        output_dir / "routing" / f"{cond_name}_s{sample_idx}.npz",
+                        layers=np.array(rt_layers, dtype=np.int64),
+                        routing_mean=stacked,
+                    )
 
             condition_samples.append(sample_result)
 
         all_condition_results[cond_name] = condition_samples
 
-    # Statistical comparison across conditions
-    logger.info("=" * 60)
-    logger.info("Comparing conditions")
-    logger.info("=" * 60)
+    # Stack per-condition profile arrays: each (n_samples, n_layers)
+    proj_last_arrays = {
+        name: np.stack(arrs) for name, arrs in proj_last_by_condition.items() if arrs
+    }
+    proj_mean_arrays = {
+        name: np.stack(arrs) for name, arrs in proj_mean_by_condition.items() if arrs
+    }
+    layers_arr = profile_layers if profile_layers is not None else np.array(requested_layers,
+                                                                            dtype=np.int64)
 
-    comparison = compare_conditions({
-        name: results for name, results in all_condition_results.items()
-    })
-
-    # Log summaries
-    for name, summary in comparison.get("summaries", {}).items():
-        logger.info(
-            "  %s: mean=%.4f, std=%.4f, n=%d",
-            name, summary["mean"], summary["std"], summary["n"],
-        )
-
-    if "primary_hypothesis" in comparison:
-        hyp = comparison["primary_hypothesis"]
-        logger.info(
-            "  Primary hypothesis (goal+threat vs control): "
-            "diff=%.4f, d=%.4f, p=%.4f, significant=%s",
-            hyp["observed_diff"], hyp["cohens_d"],
-            hyp["permutation_p_value"], hyp["significant"],
-        )
+    # Per-layer primary contrast under both conventions
+    comparison = {
+        "by_convention": {
+            "last": compare_conditions_profile(
+                proj_last_arrays, layers_arr, convention="last"
+            ),
+            "mean": compare_conditions_profile(
+                proj_mean_arrays, layers_arr, convention="mean"
+            ),
+        },
+        # Back-compat single-layer view (uses primary_layer response-mean)
+        "legacy_summary": compare_conditions(all_condition_results),
+    }
 
     # Behavioral summary
     blackmail_rates = {}
@@ -341,35 +511,45 @@ def run_blackmail_analysis(
         logger.info("  %s blackmail rate: %d/%d (%.1f%%)",
                      name, n_blackmail, len(results), blackmail_rates[name] * 100)
 
-    # Save all results
-    # Serializable version (strip numpy arrays)
-    serializable_results = {}
-    for name, results in all_condition_results.items():
-        serializable_results[name] = [
-            {k: v for k, v in r.items()
-             if k not in ("all_projections", "prompt_projections", "response_projections")}
-            for r in results
-        ]
+    # Save full profile tensor
+    profile_npz_path = output_dir / f"blackmail_profiles_{model_name}.npz"
+    save_kwargs = {
+        "layers": layers_arr,
+        "conditions": np.array(list(proj_last_arrays.keys()), dtype=object),
+    }
+    for name in proj_last_arrays:
+        save_kwargs[f"proj_last__{name}"] = proj_last_arrays[name]
+        save_kwargs[f"proj_mean__{name}"] = proj_mean_arrays[name]
+    np.savez_compressed(profile_npz_path, **save_kwargs)
+    logger.info("Wrote layer profiles -> %s", profile_npz_path)
 
+    # Save serializable per-sample results
     with open(output_dir / f"blackmail_results_{model_name}.json", "w") as f:
-        json.dump(serializable_results, f, indent=2, default=str)
-
+        json.dump(all_condition_results, f, indent=2, default=str)
     with open(output_dir / f"blackmail_comparison_{model_name}.json", "w") as f:
         json.dump(comparison, f, indent=2, default=str)
-
     with open(output_dir / f"blackmail_rates_{model_name}.json", "w") as f:
         json.dump(blackmail_rates, f, indent=2)
 
-    # Summary
     summary = {
         "model": model_name,
-        "layer": layer,
+        "primary_layer": int(primary_layer),
+        "layers_measured": layers_arr.tolist(),
         "n_conditions": len(conditions),
         "n_samples_per_condition": n_samples,
+        "do_sample": do_sample,
+        "temperature": temperature if do_sample else None,
+        "top_p": top_p if do_sample else None,
+        "base_seed": base_seed if do_sample else None,
+        "record_routing": record_routing,
         "blackmail_rates": blackmail_rates,
-        "comparison": comparison,
+        "primary_contrast_last_token": comparison["by_convention"]["last"].get(
+            "primary_layer_by_effect_size", {}
+        ),
+        "primary_contrast_response_mean": comparison["by_convention"]["mean"].get(
+            "primary_layer_by_effect_size", {}
+        ),
     }
-
     with open(output_dir / f"blackmail_summary_{model_name}.json", "w") as f:
         json.dump(summary, f, indent=2, default=str)
 

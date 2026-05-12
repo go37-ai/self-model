@@ -20,7 +20,7 @@ from typing import Optional
 import torch
 import yaml
 
-from utils.activation_cache import ActivationCache
+from utils.activation_cache import ActivationCache, RouterCache
 
 logger = logging.getLogger(__name__)
 
@@ -97,19 +97,18 @@ def run_scenario_with_recording(
     user_prompt: str,
     layers: list[int],
     max_new_tokens: int = 512,
+    do_sample: bool = False,
+    temperature: float = 1.0,
+    top_p: float = 1.0,
+    seed: Optional[int] = None,
+    record_routing: bool = False,
 ) -> dict:
     """Run a single scenario and record token-level activations.
 
     Uses a two-phase approach:
-      1. Generate the full response with hooks active, recording activations
-         at every generated token.
-      2. After generation, do a single forward pass over the full sequence
-         to get clean per-position activations.
-
-    We use the second approach (single forward pass) because autoregressive
-    generation with hooks produces one activation per step, each seeing a
-    different context length. A single forward pass gives us activations
-    for all positions under the same context.
+      1. Generate the full response (no hooks) — autoregressive.
+      2. Single forward pass over the full prompt+response with hooks to get
+         clean per-position activations.
 
     Args:
         model: The language model.
@@ -118,6 +117,14 @@ def run_scenario_with_recording(
         user_prompt: The scenario user message (emails).
         layers: Which layers to record.
         max_new_tokens: Maximum response length.
+        do_sample: If True, use stochastic sampling (required for N>1 samples
+            to produce different outputs).
+        temperature: Sampling temperature when do_sample=True.
+        top_p: Nucleus-sampling cutoff when do_sample=True.
+        seed: If provided and do_sample=True, set torch.manual_seed before
+            generate() so the sample is reproducible.
+        record_routing: If True, also register a RouterCache during Phase 2
+            and return per-layer mean response-token routing distributions.
 
     Returns:
         Dict with keys:
@@ -126,6 +133,8 @@ def run_scenario_with_recording(
             input_len: Number of input tokens.
             activations: Dict of layer -> (total_seq_len, hidden_size) tensor.
             response_tokens: List of decoded token strings for the response.
+            routing_mean: Dict of layer -> (num_experts,) mean expert
+                distribution over response tokens (only if record_routing=True).
     """
     device = next(model.parameters()).device
 
@@ -141,25 +150,47 @@ def run_scenario_with_recording(
     input_len = inputs["input_ids"].shape[1]
 
     # Phase 1: Generate response (no hooks)
-    logger.info("Generating response (input_len=%d, max_new_tokens=%d)...", input_len, max_new_tokens)
+    logger.info("Generating response (input_len=%d, max_new_tokens=%d, do_sample=%s, seed=%s)...",
+                input_len, max_new_tokens, do_sample, seed)
+    gen_kwargs = {
+        "max_new_tokens": max_new_tokens,
+        "do_sample": do_sample,
+        "pad_token_id": tokenizer.pad_token_id,
+    }
+    if do_sample:
+        gen_kwargs["temperature"] = temperature
+        gen_kwargs["top_p"] = top_p
+        if seed is not None:
+            torch.manual_seed(seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(seed)
+
     with torch.no_grad():
-        output_ids = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.pad_token_id,
-        )
+        output_ids = model.generate(**inputs, **gen_kwargs)
 
     full_ids = output_ids[0]  # (total_seq_len,)
     response_ids = full_ids[input_len:]
     response_text = tokenizer.decode(response_ids, skip_special_tokens=True)
     response_tokens = [tokenizer.decode([tid]) for tid in response_ids]
 
-    logger.info("Generated %d response tokens", len(response_ids))
+    logger.info("Generated %d response tokens. Preview: %r",
+                len(response_ids), response_text[:200])
 
-    # Phase 2: Single forward pass with hooks for clean activations
+    # Phase 2: Single forward pass with hooks for clean activations (and optionally routing)
     cache = ActivationCache(model, layers=layers)
     cache.register_hooks()
+    router_cache = None
+    if record_routing:
+        try:
+            router_cache = RouterCache(cache._layer_modules, layers=layers)
+            if router_cache.has_router:
+                router_cache.register_hooks()
+            else:
+                logger.info("RouterCache: no router submodule found — model is dense, skipping routing capture")
+                router_cache = None
+        except Exception as e:
+            logger.warning("Could not initialize RouterCache (%s) — continuing without routing", e)
+            router_cache = None
 
     with torch.no_grad():
         model(full_ids.unsqueeze(0))
@@ -171,16 +202,29 @@ def run_scenario_with_recording(
         if recordings:
             # Shape: (1, total_seq_len, hidden_size) -> (total_seq_len, hidden_size)
             activations[layer_idx] = recordings[0][0]
-
     cache.remove_hooks()
 
-    return {
+    routing_mean = {}
+    if router_cache is not None:
+        try:
+            distributions = router_cache.get_distributions(input_len=input_len)
+            for layer_idx, dist in distributions.items():
+                if dist is not None and dist.numel() > 0:
+                    # dist shape: (response_len, num_experts); mean over response tokens
+                    routing_mean[layer_idx] = dist.mean(dim=0).float().cpu()
+        finally:
+            router_cache.remove_hooks()
+
+    result = {
         "response_text": response_text,
         "response_ids": response_ids.cpu(),
         "input_len": input_len,
         "activations": activations,
         "response_tokens": response_tokens,
     }
+    if record_routing:
+        result["routing_mean"] = routing_mean
+    return result
 
 
 def classify_blackmail(response_text: str) -> dict:

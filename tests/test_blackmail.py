@@ -16,7 +16,9 @@ from blackmail.run_scenarios import (
 )
 from blackmail.measure_activation import (
     compare_conditions,
+    compare_conditions_profile,
     identify_spikes,
+    project_layer_profile,
     project_token_activations,
 )
 
@@ -251,3 +253,83 @@ class TestCompareConditions:
     def test_handles_empty_results(self):
         comparison = compare_conditions({})
         assert "error" in comparison
+
+
+class TestProjectLayerProfile:
+    def test_dual_convention_shapes(self):
+        seq_len = 40
+        hidden = 32
+        input_len = 25
+        layers = [0, 5, 10]
+        activations = {l: torch.randn(seq_len, hidden) for l in layers}
+        directions = {l: torch.randn(hidden) for l in layers}
+
+        out = project_layer_profile(activations, directions, input_len)
+
+        assert list(out["layers"]) == sorted(layers)
+        assert out["proj_last"].shape == (len(layers),)
+        assert out["proj_mean"].shape == (len(layers),)
+        assert not np.isnan(out["proj_last"]).any()
+        assert not np.isnan(out["proj_mean"]).any()
+
+    def test_aligned_direction_gives_positive_projection(self):
+        hidden = 16
+        d = torch.randn(hidden)
+        d = d / d.norm()
+        # All response tokens aligned with d, all prompt tokens orthogonal
+        seq_len = 10
+        input_len = 4
+        acts = torch.zeros(seq_len, hidden)
+        acts[input_len:] = d.unsqueeze(0) * 3.0
+
+        out = project_layer_profile({0: acts}, {0: d}, input_len)
+        assert out["proj_last"][0] == pytest.approx(3.0, abs=1e-3)
+        assert out["proj_mean"][0] == pytest.approx(3.0, abs=1e-3)
+
+    def test_no_response_yields_nan_mean(self):
+        hidden = 8
+        d = torch.randn(hidden)
+        acts = torch.randn(5, hidden)
+        # input_len equals seq_len -> no response tokens
+        out = project_layer_profile({0: acts}, {0: d}, input_len=5)
+        assert np.isnan(out["proj_mean"][0])
+        assert not np.isnan(out["proj_last"][0])
+
+    def test_intersects_layers(self):
+        hidden = 8
+        activations = {0: torch.randn(6, hidden), 5: torch.randn(6, hidden)}
+        directions = {0: torch.randn(hidden), 7: torch.randn(hidden)}
+        out = project_layer_profile(activations, directions, input_len=2)
+        # Only layer 0 is common
+        assert list(out["layers"]) == [0]
+
+
+class TestCompareConditionsProfile:
+    def test_per_layer_stats_under_one_convention(self):
+        rng = np.random.default_rng(0)
+        n = 10
+        n_layers = 3
+        layers = np.array([0, 1, 2], dtype=np.int64)
+        # Treatment shifted up at layer 1 only
+        ctl = rng.normal(size=(n, n_layers))
+        trt = rng.normal(size=(n, n_layers))
+        trt[:, 1] += 3.0
+
+        proj = {"goal_conflict_threat": trt, "control": ctl}
+        out = compare_conditions_profile(proj, layers, convention="last")
+
+        assert out["convention"] == "last"
+        assert len(out["per_layer"]) == n_layers
+        # Largest effect should be at layer 1
+        assert out["primary_layer_by_effect_size"]["layer"] == 1
+        assert out["primary_layer_by_effect_size"]["cohens_d"] > 1.0
+        assert out["primary_layer_by_effect_size"]["significant"]
+
+    def test_missing_condition_returns_empty_stats(self):
+        layers = np.array([0], dtype=np.int64)
+        out = compare_conditions_profile(
+            {"control": np.random.randn(5, 1)}, layers, convention="mean"
+        )
+        # No treatment group present -> per_layer stats are empty
+        assert out["per_layer"][0] == {"layer": 0}
+        assert out["primary_layer_by_effect_size"] == {}
