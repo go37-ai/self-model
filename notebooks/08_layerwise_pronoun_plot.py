@@ -13,7 +13,8 @@ RESULTS = ROOT / "data" / "results" / "layerwise_discriminant"
 PAPER = ROOT / "paper"
 
 MODELS = {
-    "Llama 3.3-70B": ("meta-llama_Llama-3.3-70B-Instruct", 20, 80),
+    "Llama 3.3-70B":      ("meta-llama_Llama-3.3-70B-Instruct", "llama",     20, 80),
+    "Gemma 4 26B A4B-it": ("google_gemma-4-26b-a4b-it",         "gemma4moe", 7,  30),
 }
 
 
@@ -50,8 +51,7 @@ def plot(label, file_stem, best_layer, num_layers, out_path):
 
 def main():
     PAPER.mkdir(exist_ok=True)
-    for label, (stem, best, n) in MODELS.items():
-        slug = "llama" if "Llama" in label else "qwen"
+    for label, (stem, slug, best, n) in MODELS.items():
         plot(label, stem, best, n, PAPER / f"figure_layerwise_pronoun_{slug}")
 
 

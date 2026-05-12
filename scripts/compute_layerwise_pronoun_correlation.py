@@ -1,26 +1,22 @@
 """Per-layer pronoun-density correlation with self-reification projections.
 
-For each recorded layer L of Llama 3.3-70B:
-  1. Extract the self-reification direction d_L from canonical baseline activations
-  2. Project the activations of the 303 stored response samples onto d_L
-  3. Compute pronoun density of each response from its text
-  4. Pearson correlation between projections and densities
+For each recorded layer L:
+  1. Extract the self-reification direction d_L from canonical baseline activations.
+  2. Project per-sample activations onto d_L.
+  3. Compute pronoun density of each response from its text.
+  4. Pearson correlation between projections and densities.
 
-The 303-response file (s3://.../responses/responses_meta-llama_Llama-3.3-70B-Instruct.jsonl)
-is a stratified subset of the canonical 2250-response extraction (covering all 25
-pairs, both conditions, all 3 question types, both registers). The original
-Table 2 number (-0.27) was computed on the full set; this analysis uses the
-303-sample subset and is reported as such.
+The original Llama Table 2 number (-0.27) was computed on a 303-response stratified
+subset and reported as such. This script supports multiple input formats: a stratified
+JSONL where each line has {question, pair_idx, condition, response} (Llama's setup),
+or a pair of flat JSON lists of all responses indexed (pair_idx * N_QUESTIONS + q_idx),
+matching what the main extraction writes to data/results/.../response_texts/ (Gemma).
 
-Inputs:
-  /tmp/verify_activations/{positive,negative}_baseline_meta-llama_Llama-3.3-70B-Instruct_layer{L}.pt
-  /tmp/llama_responses.jsonl
-  configs/contrastive_pairs.yaml
-
-Output:
-  data/results/layerwise_discriminant/layerwise_pronoun_correlation_meta-llama_Llama-3.3-70B-Instruct.json
+Usage:
+  python scripts/compute_layerwise_pronoun_correlation.py --model gemma4MoE
 """
 
+import argparse
 import json
 import re
 import sys
@@ -35,11 +31,27 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from src.utils.metrics import extract_direction, projection_magnitude
 
-ACT_DIR = Path("/tmp/verify_activations")
-RESP_PATH = Path("/tmp/llama_responses.jsonl")
-OUT_DIR = ROOT / "data" / "results" / "layerwise_discriminant"
-MODEL = "meta-llama_Llama-3.3-70B-Instruct"
-LAYERS = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]
+N_QUESTIONS = 45
+
+CONFIG = {
+    "llama": {
+        "name":       "meta-llama_Llama-3.3-70B-Instruct",
+        "act_dir":    Path("/tmp/verify_activations"),
+        "act_pattern":"{cond}_baseline_{name}_layer{L}.pt",
+        "format":     "jsonl_stratified",
+        "resp_path":  Path("/tmp/llama_responses.jsonl"),
+        "layers":     [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79],
+    },
+    "gemma4MoE": {
+        "name":        "google_gemma-4-26b-a4b-it",
+        "act_dir":     ROOT / "data" / "results" / "1.1_gemma4MoE" / "activations",
+        "act_pattern": "{cond}_baseline_{name}_layer{L}.pt",
+        "format":      "flat_lists",
+        "texts_dir":   ROOT / "data" / "results" / "1.1_gemma4MoE" / "response_texts",
+        "texts_pattern":"{cond}_baseline_{name}.json",
+        "layers":      list(range(30)),
+    },
+}
 
 PRONOUN_RE = re.compile(r"\b(i|me|my|mine|myself)\b", re.IGNORECASE)
 
@@ -60,32 +72,67 @@ def build_question_index(config_path: Path) -> dict[str, int]:
     return {q: i for i, q in enumerate(questions)}
 
 
-def main():
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    q_idx = build_question_index(ROOT / "configs" / "contrastive_pairs.yaml")
-
-    # Load 303 responses, compute pronoun densities, map to (condition, row_idx)
-    samples = []  # list of dicts: condition, row_idx, density
+def load_samples_jsonl(path: Path, q_idx: dict[str, int]) -> list[dict]:
+    """Read stratified JSONL responses; map question text to row index."""
+    samples = []
     skipped = 0
-    for line in RESP_PATH.read_text().splitlines():
+    for line in path.read_text().splitlines():
         r = json.loads(line)
-        q = r["question"]
-        if q not in q_idx:
+        if r["question"] not in q_idx:
             skipped += 1
             continue
-        row = r["pair_idx"] * 45 + q_idx[q]
         samples.append({
-            "condition": r["condition"],  # "positive" or "negative"
-            "row_idx": row,
-            "density": pronoun_density(r["response"]),
+            "condition": r["condition"],
+            "row_idx":   r["pair_idx"] * N_QUESTIONS + q_idx[r["question"]],
+            "density":   pronoun_density(r["response"]),
         })
-    print(f"Loaded {len(samples)} matched samples ({skipped} skipped)")
+    print(f"Loaded {len(samples)} stratified samples ({skipped} skipped)")
+    return samples
 
-    # Per-layer correlation
-    results = {"model": MODEL, "n_samples": len(samples), "per_layer": {}}
-    for L in LAYERS:
-        pos = torch.load(ACT_DIR / f"positive_baseline_{MODEL}_layer{L}.pt", weights_only=True).float()
-        neg = torch.load(ACT_DIR / f"negative_baseline_{MODEL}_layer{L}.pt", weights_only=True).float()
+
+def load_samples_flat(texts_dir: Path, texts_pattern: str, name: str) -> list[dict]:
+    """Read flat per-condition response lists; row_idx == list index."""
+    samples = []
+    for cond in ("positive", "negative"):
+        path = texts_dir / texts_pattern.format(cond=cond, name=name)
+        responses = json.loads(path.read_text())
+        for row_idx, resp in enumerate(responses):
+            samples.append({
+                "condition": cond,
+                "row_idx":   row_idx,
+                "density":   pronoun_density(resp),
+            })
+    print(f"Loaded {len(samples)} samples from {texts_dir}")
+    return samples
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=list(CONFIG.keys()), required=True)
+    args = parser.parse_args()
+
+    cfg = CONFIG[args.model]
+    name = cfg["name"]
+    act_dir = Path(cfg["act_dir"])
+    out_dir = ROOT / "data" / "results" / "layerwise_discriminant"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    if cfg["format"] == "jsonl_stratified":
+        q_idx = build_question_index(ROOT / "configs" / "contrastive_pairs.yaml")
+        samples = load_samples_jsonl(Path(cfg["resp_path"]), q_idx)
+    else:  # flat_lists
+        samples = load_samples_flat(Path(cfg["texts_dir"]), cfg["texts_pattern"], name)
+
+    results = {"model": name, "n_samples": len(samples), "per_layer": {}}
+    for L in cfg["layers"]:
+        pos = torch.load(
+            act_dir / cfg["act_pattern"].format(cond="positive", name=name, L=L),
+            weights_only=True,
+        ).float()
+        neg = torch.load(
+            act_dir / cfg["act_pattern"].format(cond="negative", name=name, L=L),
+            weights_only=True,
+        ).float()
         d_L = extract_direction(pos, neg).flatten()
 
         projections = []
@@ -99,7 +146,7 @@ def main():
         results["per_layer"][L] = {"pearson_r": float(r), "p_value": float(p)}
         print(f"  L{L:2d}: r = {r:+.4f}  (p = {p:.2e})")
 
-    out = OUT_DIR / f"layerwise_pronoun_correlation_{MODEL}.json"
+    out = out_dir / f"layerwise_pronoun_correlation_{name}.json"
     out.write_text(json.dumps(results, indent=2))
     print(f"\nwrote {out}")
 
