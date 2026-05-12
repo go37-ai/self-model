@@ -25,8 +25,9 @@ PAPER = ROOT / "paper"
 
 # Map UI label -> (file model_name, best layer in main analysis, total layers)
 MODELS = {
-    "Llama 3.3-70B": ("meta-llama_Llama-3.3-70B-Instruct", 20, 80),
-    "Qwen 2.5-72B":  ("Qwen_Qwen2.5-72B-Instruct",         60, 80),
+    "Llama 3.3-70B":      ("meta-llama_Llama-3.3-70B-Instruct", 20, 80),
+    "Qwen 2.5-72B":       ("Qwen_Qwen2.5-72B-Instruct",         60, 80),
+    "Gemma 4 26B A4B-it": ("google_gemma-4-26b-a4b-it",          7, 30),
 }
 
 
@@ -69,8 +70,9 @@ def plot_model(label: str, file_stem: str, best_layer: int, num_layers: int,
 
 def main():
     PAPER.mkdir(exist_ok=True)
+    slug_for = {"Llama": "llama", "Qwen": "qwen", "Gemma": "gemma4moe"}
     for label, (stem, best, n) in MODELS.items():
-        slug = "llama" if "Llama" in label else "qwen"
+        slug = next((v for k, v in slug_for.items() if k in label), "model")
         plot_model(label, stem, best, n, PAPER / f"figure_layerwise_discriminant_{slug}")
 
 

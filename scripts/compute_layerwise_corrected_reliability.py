@@ -24,18 +24,25 @@ sys.path.insert(0, str(ROOT))
 from src.utils.metrics import split_half_reliability, split_half_reliability_corrected
 
 CONFIG = {
-    "llama":  {
+    "llama":     {
         "name": "meta-llama_Llama-3.3-70B-Instruct",
         "act_dir": "/tmp/verify_activations",
         "form_dir": "/tmp/layerwise_formality_dirs",
+        "layers": [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79],
     },
-    "qwen72": {
+    "qwen72":    {
         "name": "Qwen_Qwen2.5-72B-Instruct",
         "act_dir": "/tmp/qwen_activations",
         "form_dir": "/tmp/qwen_formality_dirs",
+        "layers": [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79],
+    },
+    "gemma4MoE": {
+        "name": "google_gemma-4-26b-a4b-it",
+        "act_dir": str(ROOT / "data" / "results" / "1.1_gemma4MoE" / "activations"),
+        "form_dir": str(ROOT / "data" / "results" / "layerwise_discriminant" / "directions_gemma4moe"),
+        "layers": list(range(30)),
     },
 }
-LAYERS = [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 79]
 
 
 def main():
@@ -47,11 +54,12 @@ def main():
     name = cfg["name"]
     act_dir = Path(cfg["act_dir"])
     form_dir = Path(cfg["form_dir"])
+    layers = cfg["layers"]
     out = ROOT / "data" / "results" / "layerwise_discriminant" / \
           f"layerwise_corrected_reliability_{name}.json"
 
     results = {"model": name, "per_layer": {}}
-    for L in LAYERS:
+    for L in layers:
         pos = torch.load(act_dir / f"positive_baseline_{name}_layer{L}.pt", weights_only=True).float()
         neg = torch.load(act_dir / f"negative_baseline_{name}_layer{L}.pt", weights_only=True).float()
         formality = torch.load(form_dir / f"formality_direction_{name}_layer{L}.pt",
