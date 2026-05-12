@@ -161,7 +161,13 @@ def main():
     logger.info("Loading model %s (%s) ...", args.model, args.profile)
     model, tokenizer, model_config = load_model_and_tokenizer(args.model, args.profile)
     model_name = model_config["name"].replace("/", "_")
-    num_layers = model.config.num_hidden_layers
+    # num_hidden_layers lives at model.config for plain causal LMs, and at
+    # model.config.text_config for multimodal wrappers (Gemma 4). Prefer
+    # the value we already loaded from models.yaml, which is correct for both.
+    num_layers = model_config.get("num_layers") or (
+        getattr(model.config, "num_hidden_layers", None)
+        or model.config.text_config.num_hidden_layers
+    )
     layers = get_recorded_layers(num_layers, args.stride)
     logger.info("Model %s: %d layers, recording at %s", model_name, num_layers, layers)
 
