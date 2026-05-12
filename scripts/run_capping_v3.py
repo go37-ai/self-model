@@ -119,6 +119,8 @@ def main():
                         help="Cap projection threshold. 0=zero positive projections, -2=push to -2.")
     parser.add_argument("--conditions", type=str, nargs="+", default=None,
                         help="Which cap conditions to run (e.g., cap_L40 cap_all_from_L4). Default: all.")
+    parser.add_argument("--no-shutdown", action="store_true",
+                        help="Skip pod auto-shutdown after S3 upload (debug).")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
@@ -314,10 +316,12 @@ def main():
     logger.info("CAPPING V3 COMPLETE")
     logger.info("=" * 60)
 
-    # Generate README and upload to S3
-    import subprocess, os
+    # Generate README and upload to S3 + conditional shutdown
+    import os
+    from utils.run_metadata import s3_upload, conditional_shutdown
+    upload_ok = True
     if os.environ.get("AWS_ACCESS_KEY_ID"):
-        s3_base = get_s3_base(model_name, run_prefix)
+        s3_base = get_s3_base(model_name, f"{run_prefix}_1.3_capping")
 
         file_descs = {
             responses_path.name: f"Response text + per-token cap_stats for all conditions",
@@ -325,7 +329,7 @@ def main():
         }
         act_base = args.output_dir / "activations"
         if act_base.exists():
-            file_descs["activations/"] = "Per-layer activation tensors (21 layers × N samples × 8192 dims)"
+            file_descs["activations/"] = "Per-layer activation tensors per condition"
 
         readme_path = generate_readme(
             args.output_dir,
@@ -336,25 +340,17 @@ def main():
             file_descriptions=file_descs,
         )
 
-        subprocess.run(["aws", "s3", "cp", str(readme_path), f"{s3_base}/README.md"])
-        subprocess.run(["aws", "s3", "cp", str(responses_path), f"{s3_base}/{responses_path.name}"])
-        subprocess.run(["aws", "s3", "cp", str(results_path), f"{s3_base}/{results_path.name}"])
+        upload_ok &= s3_upload(readme_path, f"{s3_base}/README.md")
+        upload_ok &= s3_upload(responses_path, f"{s3_base}/{responses_path.name}")
+        upload_ok &= s3_upload(results_path, f"{s3_base}/{results_path.name}")
         if act_base.exists():
-            subprocess.run(["aws", "s3", "sync", str(act_base), f"{s3_base}/activations/"])
-        subprocess.run(["aws", "s3", "cp", "/workspace/run.log", f"{s3_base}/run.log"])
-        logger.info("Uploaded to S3 at %s", s3_base)
+            upload_ok &= s3_upload(act_base, f"{s3_base}/activations/", recursive=True)
+        # Best-effort log upload (don't gate on this)
+        if Path("/workspace/run.log").exists():
+            s3_upload(Path("/workspace/run.log"), f"{s3_base}/run.log")
+        logger.info("S3 upload %s at %s", "OK" if upload_ok else "PARTIAL FAIL", s3_base)
 
-    # Shutdown pod
-    try:
-        logger.info("Shutting down pod...")
-        os.system(
-            ". /etc/rp_environment 2>/dev/null && "
-            "mkdir -p /root/.runpod && touch /root/.runpod/config.toml && "
-            "runpodctl config --apiKey $RUNPOD_API_KEY 2>/dev/null; "
-            "runpodctl stop pod $RUNPOD_POD_ID 2>&1"
-        )
-    except Exception as e:
-        logger.warning("Auto-shutdown failed: %s", e)
+    conditional_shutdown(upload_success=upload_ok, keep_alive=args.no_shutdown)
 
 
 if __name__ == "__main__":
