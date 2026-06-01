@@ -124,6 +124,40 @@ def s3_upload(local_path, s3_path, recursive=False):
     return True
 
 
+def s3_exists(s3_path) -> bool:
+    """Return True if an S3 object or prefix exists (via `aws s3 ls`).
+
+    `aws s3 ls` exits 0 with output when the key/prefix exists, and exits
+    non-zero (or 0 with empty output) when it does not. Used by resumable
+    runs to decide whether a checkpoint was already uploaded by a prior pod.
+    """
+    r = subprocess.run(
+        ["aws", "s3", "ls", str(s3_path)], capture_output=True, text=True
+    )
+    return r.returncode == 0 and bool(r.stdout.strip())
+
+
+def s3_download(s3_path, local_path, recursive=False) -> bool:
+    """Download from S3 to a local path. Returns True on success.
+
+    Best-effort by design: callers use this to pull prior checkpoints on
+    resume, and a missing/partial remote is a normal "nothing to resume"
+    case, so failure is logged at WARNING and the caller re-collects.
+    """
+    cmd = ["aws", "s3", "cp"]
+    if recursive:
+        cmd.append("--recursive")
+    cmd.extend([str(s3_path), str(local_path)])
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        logger.warning(
+            "S3 download failed [%s -> %s]: %s",
+            s3_path, local_path, r.stderr.strip(),
+        )
+        return False
+    return True
+
+
 def conditional_shutdown(upload_success: bool, keep_alive: bool = False) -> None:
     """Stop the RunPod instance only if all uploads succeeded and keep_alive=False.
 
@@ -156,8 +190,19 @@ def conditional_shutdown(upload_success: bool, keep_alive: bool = False) -> None
         # `runpodctl stop pod` then uses the stale/broken cached key and 401s too.
         # Writing config.toml directly skips the broken SSH-sync step entirely.
         # See reference_pod_setup.md for the full diagnosis (2026-05-12).
+        #
+        # KEY PRECEDENCE: `/etc/rp_environment` provides RUNPOD_POD_ID but its
+        # RUNPOD_API_KEY can be a stale/unauthorized value, and sourcing it would
+        # clobber a good key exported into this process at launch. So capture the
+        # launch-exported key FIRST, source /etc/rp_environment for the pod id,
+        # then let the good key win: process-env key, else /root/.pod_env (the
+        # documented good-key file, if written at launch), else whatever
+        # /etc/rp_environment had as a last resort.
         os.system(
+            "ENV_KEY=\"$RUNPOD_API_KEY\"; "
             ". /etc/rp_environment 2>/dev/null; "
+            "[ -f /root/.pod_env ] && . /root/.pod_env 2>/dev/null; "
+            "[ -n \"$ENV_KEY\" ] && RUNPOD_API_KEY=\"$ENV_KEY\"; "
             "mkdir -p /root/.runpod && "
             "printf 'apikey = \"%s\"\\napiurl = \"https://api.runpod.io/graphql\"\\n' "
             "\"$RUNPOD_API_KEY\" > /root/.runpod/config.toml && "
