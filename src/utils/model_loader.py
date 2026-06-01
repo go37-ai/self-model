@@ -93,7 +93,11 @@ def load_model_and_tokenizer(
         cfg["quantize"],
     )
 
-    # Build model loading kwargs
+    # Build model loading kwargs. transformers renamed the `torch_dtype`
+    # argument to `dtype` around v4.56; older versions (e.g. 4.47.1, which we
+    # pin on torch-2.4 pods) still expect `torch_dtype`. _from_pretrained() below
+    # passes `dtype` and falls back to `torch_dtype` on the resulting TypeError,
+    # so the loader works across both without hardcoding a version.
     model_kwargs = {
         "dtype": torch_dtype,
         "device_map": "auto",
@@ -111,6 +115,18 @@ def load_model_and_tokenizer(
             bnb_4bit_use_double_quant=True,
         )
 
+    def _from_pretrained(model_cls):
+        """Load weights, tolerating the transformers torch_dtype->dtype rename."""
+        try:
+            return model_cls.from_pretrained(model_name, **model_kwargs)
+        except TypeError as e:
+            if "dtype" in str(e) and "dtype" in model_kwargs:
+                fallback = dict(model_kwargs)
+                fallback["torch_dtype"] = fallback.pop("dtype")
+                logger.info("Older transformers detected; retrying with torch_dtype kwarg")
+                return model_cls.from_pretrained(model_name, **fallback)
+            raise
+
     # Gemma 4 ships its weights under the multimodal Gemma4ForConditionalGeneration
     # checkpoint (state dict prefixed with model.language_model.*). Loading the
     # text-only Gemma4ForCausalLM class against this checkpoint silently
@@ -122,9 +138,9 @@ def load_model_and_tokenizer(
     if "gemma-4" in model_name.lower():
         from transformers import Gemma4ForConditionalGeneration
         logger.info("Loading Gemma 4 via Gemma4ForConditionalGeneration (multimodal wrapper)")
-        model = Gemma4ForConditionalGeneration.from_pretrained(model_name, **model_kwargs)
+        model = _from_pretrained(Gemma4ForConditionalGeneration)
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+        model = _from_pretrained(AutoModelForCausalLM)
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
     # Ensure pad token is set (some models don't have one)
