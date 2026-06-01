@@ -1,3 +1,13 @@
+# Pod setup notes (verified 2026-06-01, Llama-3.3-70B on 2xA100):
+#  - transformers is left unpinned but MUST match the pod's torch. On torch 2.4.x
+#    pods the latest transformers crashes at import (it needs torch>=2.5:
+#    `torch.distributed.tensor.device_mesh`). On a torch-2.4 pod install
+#    transformers==4.47.1 (supports Llama 3.3); newer-torch pods can use latest
+#    (Gemma 4 needs it). Do not hard-pin here — the right version is per-pod.
+#  - Model download on RunPod MooseFS /workspace volumes: the HF Xet backend and
+#    hf_transfer both DEADLOCK (many threads writing one shard on MooseFS). Use the
+#    plain downloader: `pip uninstall -y hf_xet` and HF_HUB_ENABLE_HF_TRANSFER=0,
+#    and set HF_HOME=/dev/shm/hf to bypass the network volume.
 torch>=2.0
 transformers>=4.40
 accelerate>=0.27
