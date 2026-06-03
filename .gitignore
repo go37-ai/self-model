@@ -6,6 +6,7 @@ __pycache__/
 dist/
 build/
 *.egg
+.env
 
 # Virtual environments
 venv/
@@ -55,3 +56,6 @@ Thumbs.db
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+
+# LLM-judge: raw response inputs pulled from S3 (large, regenerable from S3)
+data/judge/responses/

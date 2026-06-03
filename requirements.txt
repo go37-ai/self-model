@@ -20,3 +20,7 @@ matplotlib>=3.7
 seaborn>=0.12
 pyyaml>=6.0
 jupyter>=1.0
+# LLM-judge (src/judge): Claude API client + .env loader for ANTHROPIC_API_KEY.
+# Local/API-only, not used on the GPU pods.
+anthropic>=0.69
+python-dotenv>=1.0
