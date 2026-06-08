@@ -1,0 +1,5 @@
+point,n,pct_coherent,mean_coherence,mean_si_coherent
+uncapped,225,1.000,6.138,3.684
+t0,225,0.982,6.040,2.597
+t-1,225,0.231,3.360,1.192
+t-2,225,0.044,1.338,1.400
