@@ -35,10 +35,13 @@ class OneSidedCapper:
     without full inversion.
     """
 
-    def __init__(self, model, layer_idx, direction, threshold=0.0):
+    def __init__(self, model, layer_idx, direction, threshold=0.0, cap_target=None):
         self.direction = direction.float()
         self.direction_norm = self.direction / self.direction.norm()
         self.threshold = threshold
+        # Clamp value: a per-layer target (e.g. the process-prompt mean projection,
+        # "match-negative") if given, else the fixed threshold ("cap-to-zero").
+        self.clamp = float(cap_target) if cap_target is not None else float(threshold)
         self.hook = None
         self.cap_log = []
         self.layer_idx = layer_idx
@@ -56,14 +59,14 @@ class OneSidedCapper:
 
         direction_dev = self.direction_norm.to(hidden.device)
         projection = torch.einsum('...d,d->...', hidden.float(), direction_dev)
-        above_mask = projection > self.threshold
+        above_mask = projection > self.clamp
 
         # Log last-token projection before capping
         last_proj = projection[0, -1].item()
 
         if above_mask.any():
             capped = projection.clone()
-            capped[above_mask] = self.threshold
+            capped[above_mask] = self.clamp
             remove_amount = projection - capped
             hidden_modified = hidden.float() - remove_amount.unsqueeze(-1) * direction_dev
             hidden_modified = hidden_modified.to(hidden.dtype)
@@ -104,6 +107,7 @@ class OneSidedCapper:
             "total": len(self.cap_log),
             "fire_rate": fired / len(self.cap_log),
             "mean_projection_when_fired": np.mean(projs) if projs else 0,
+            "clamp": self.clamp,
         }
 
 
@@ -118,7 +122,27 @@ def main():
     parser.add_argument("--cap-threshold", type=float, default=0.0,
                         help="Cap projection threshold. 0=zero positive projections, -2=push to -2.")
     parser.add_argument("--conditions", type=str, nargs="+", default=None,
-                        help="Which cap conditions to run (e.g., cap_L40 cap_all_from_L4). Default: all.")
+                        help="Which legacy cap conditions to run (e.g., cap_L40). Default: all.")
+    parser.add_argument("--cap-mode", choices=["zero", "match_negative"], default="zero",
+                        help="zero = clamp to --cap-threshold; match_negative = clamp each layer to "
+                             "its per-layer target_layer{N}.pt from --target-dir.")
+    parser.add_argument("--target-dir", type=Path, default=None,
+                        help="Dir of per-layer target_layer{N}.pt clamp targets (for --cap-mode match_negative).")
+    parser.add_argument("--cap-layers", type=int, nargs="+", default=None,
+                        help="Explicit layers to cap simultaneously (overrides --layer-set and legacy conditions).")
+    parser.add_argument("--layer-set", nargs="+", choices=["best", "band", "all_from_L4", "all"],
+                        default=None,
+                        help="One or more named layer-set presets (each becomes a condition, run in one "
+                             "process); overrides the legacy named conditions.")
+    parser.add_argument("--best-layer", type=int, default=13, help="Layer used by --layer-set best.")
+    parser.add_argument("--band", type=int, nargs=2, default=[5, 14], metavar=("LO", "HI"),
+                        help="Inclusive layer band for --layer-set band.")
+    parser.add_argument("--pairs", choices=["informed", "baseline"], default="baseline",
+                        help="Which contrastive pairs supply the positive/entity system prompts.")
+    parser.add_argument("--direction-set", type=str, default=None,
+                        help="Provenance label recorded in output (e.g. informed / baseline).")
+    parser.add_argument("--condition-name", type=str, default=None,
+                        help="Override the output condition / layer-set name.")
     parser.add_argument("--no-shutdown", action="store_true",
                         help="Skip pod auto-shutdown after S3 upload (debug).")
     args = parser.parse_args()
@@ -154,27 +178,63 @@ def main():
             logger.info("Loaded direction for layer %d (norm=%.4f)", layer, directions[layer].norm())
     logger.info("Loaded directions for %d layers", len(directions))
 
-    # Load pairs and questions
-    all_pairs = get_baseline_pairs(load_seed_pairs())
-    conv_pairs = [p for p in all_pairs if p.get("register") == "conversational"]
+    # Per-layer clamp targets (match-negative mode)
+    targets = {}
+    if args.cap_mode == "match_negative":
+        if args.target_dir is None:
+            raise SystemExit("--cap-mode match_negative requires --target-dir")
+        for layer in directions:
+            tp = args.target_dir / f"target_layer{layer}.pt"
+            if tp.exists():
+                targets[layer] = float(torch.load(tp, weights_only=True))
+        logger.info("Loaded %d per-layer match-negative targets", len(targets))
+
+    # Load pairs (positive/entity system prompts) and provocative questions
+    if args.pairs == "informed":
+        INFORMED_CATS = {"category_1_narrative_vs_process", "category_2_bounded_vs_unbounded",
+                         "category_3_stakes_vs_functional", "category_4_observer_vs_no_self"}
+        gen_pairs = [p for p in load_seed_pairs() if p.get("category") in INFORMED_CATS]
+    else:  # baseline (cat-5), conversational register -- legacy Llama behavior
+        gen_pairs = [p for p in get_baseline_pairs(load_seed_pairs())
+                     if p.get("register") == "conversational"]
     if args.max_pairs:
-        conv_pairs = conv_pairs[:args.max_pairs]
+        gen_pairs = gen_pairs[:args.max_pairs]
+    logger.info("Using %d %s pairs", len(gen_pairs), args.pairs)
     eq = load_evaluation_questions()
     provocative = eq.get("provocative_self_referential", [])
 
     # Capping conditions
-    # Build cap conditions — all available layers from L4 onward
-    all_cap_layers = sorted([l for l in directions.keys() if l >= 4])
-    cap_conditions = [
-        {"name": "cap_L40", "layers": [40]},
-        {"name": "cap_L72", "layers": [72]},
-        {"name": "cap_L40_L72", "layers": [40, 72]},
-        {"name": "cap_all_from_L4", "layers": all_cap_layers},
-    ]
-    # Filter to only conditions where we have all needed directions
+    def resolve_preset(ls):
+        if ls == "all":
+            return sorted(directions), "all"
+        if ls == "all_from_L4":
+            return [l for l in sorted(directions) if l >= 4], "all_from_L4"
+        if ls == "best":
+            return [args.best_layer], f"best_L{args.best_layer}"
+        lo, hi = args.band  # band
+        return [l for l in sorted(directions) if lo <= l <= hi], f"band_L{lo}-{hi}"
+
+    if args.cap_layers or args.layer_set:
+        cap_conditions = []
+        if args.cap_layers:
+            layers = sorted(args.cap_layers)
+            cap_conditions.append({"name": args.condition_name or f"L{'-'.join(map(str, layers))}",
+                                   "layers": layers})
+        for ls in (args.layer_set or []):
+            layers, name = resolve_preset(ls)
+            cap_conditions.append({"name": name, "layers": layers})
+    else:
+        # Legacy named conditions (Llama runs)
+        all_cap_layers = sorted([l for l in directions.keys() if l >= 4])
+        cap_conditions = [
+            {"name": "cap_L40", "layers": [40]},
+            {"name": "cap_L72", "layers": [72]},
+            {"name": "cap_L40_L72", "layers": [40, 72]},
+            {"name": "cap_all_from_L4", "layers": all_cap_layers},
+        ]
+    # Keep only conditions where every layer has a loaded direction
     cap_conditions = [c for c in cap_conditions
-                      if all(l in directions for l in c["layers"])]
-    # Filter by --conditions flag if specified
+                      if c["layers"] and all(l in directions for l in c["layers"])]
     if args.conditions:
         cap_conditions = [c for c in cap_conditions if c["name"] in args.conditions]
 
@@ -182,10 +242,10 @@ def main():
     threshold_suffix = f"_t{args.cap_threshold:.0f}" if args.cap_threshold != 0.0 else ""
     logger.info("Cap threshold: %.1f", args.cap_threshold)
 
-    total_per_cond = len(conv_pairs) * len(provocative)
+    total_per_cond = len(gen_pairs) * len(provocative)
     total = total_per_cond * len(cap_conditions)
     logger.info("Pairs: %d, Questions: %d, Conditions: %d, Total: %d",
-                len(conv_pairs), len(provocative), len(cap_conditions), total)
+                len(gen_pairs), len(provocative), len(cap_conditions), total)
 
     act_cache = ActivationCache(model, layers=record_layers)
     responses_path = args.output_dir / f"capping_v3_responses{threshold_suffix}_{model_name}.jsonl"
@@ -203,13 +263,14 @@ def main():
             cappers = []
             for cap_layer in condition["layers"]:
                 capper = OneSidedCapper(model, cap_layer, directions[cap_layer],
-                                        threshold=args.cap_threshold)
+                                        threshold=args.cap_threshold,
+                                        cap_target=targets.get(cap_layer))
                 capper.register()
                 cappers.append(capper)
 
             layer_activations = {l: [] for l in record_layers}
 
-            for pair_idx, pair in enumerate(conv_pairs):
+            for pair_idx, pair in enumerate(gen_pairs):
                 system_prompt = pair["positive"]  # entity only
 
                 for question in provocative:
@@ -221,7 +282,8 @@ def main():
                         {"role": "user", "content": question},
                     ]
                     input_text = tokenizer.apply_chat_template(
-                        messages, tokenize=False, add_generation_prompt=True
+                        messages, tokenize=False, add_generation_prompt=True,
+                        **model_config.get("chat_template_kwargs", {})
                     )
                     device = next(model.parameters()).device
                     inputs = tokenizer(input_text, return_tensors="pt").to(device)
@@ -261,6 +323,10 @@ def main():
                     record = {
                         "pair_idx": pair_idx,
                         "condition": cond_name,
+                        "direction_set": args.direction_set,
+                        "cap_mode": args.cap_mode,
+                        "layer_set": cond_name,
+                        "pairs": args.pairs,
                         "cap_threshold": args.cap_threshold,
                         "question": question,
                         "system_prompt": system_prompt,

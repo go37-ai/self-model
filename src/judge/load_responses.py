@@ -144,11 +144,67 @@ def load_uncapped(root: Path = RESP_ROOT):
     return _load_jsonl_source("uncapped", [root / "uncapped" / "uncapped_entity.jsonl"])
 
 
+# --- Gemma 4 MoE steering (separate roots; these ignore the RESP_ROOT arg) ---
+GEMMA = ROOT / "data" / "results" / "1.1_gemma4MoE"
+GEMMA_NAME = "google_gemma-4-26b-a4b-it"
+STEERED_GEMMA_ROOT = ROOT / "data" / "results" / "steering_gemma" / "runs"
+
+
+def load_gemma_baseline(root=None):
+    """Gemma informed entity (positive) + process (negative) baselines, from the
+    extraction response_texts (flat 900 each), aligned in order to the
+    manifest_informed condition slices. question_type derived from the bank.
+    """
+    man = list(_read_jsonl(GEMMA / "activations" / f"manifest_informed_{GEMMA_NAME}.jsonl"))
+    qs = get_all_questions()
+    records = []
+    for cond in ("positive", "negative"):
+        sl = [r for r in man if r["condition"] == cond]
+        resp = json.load(open(GEMMA / "response_texts" / f"{cond}_informed_{GEMMA_NAME}.json"))
+        for i, (r, text) in enumerate(zip(sl, resp)):
+            q = qs[int(r["question_id"][1:])]
+            records.append({
+                "row_id": f"gemma_baseline:{cond}:{i}",
+                "source": "gemma_baseline",
+                "question": q,
+                "response": text,
+                "question_type": question_type_of(q),
+                "condition": cond,
+                "pair_idx": i // N_QUESTIONS,
+            })
+    return records
+
+
+def load_steered_gemma(root=None):
+    """Steered Gemma runs written by run_capping_v3 (glob the per-config jsonls under
+    data/results/steering_gemma/runs/). Each record carries direction_set, cap_mode,
+    layer_set for downstream grouping."""
+    records = []
+    for path in sorted(STEERED_GEMMA_ROOT.glob("**/capping_v3_responses*.jsonl")):
+        for line_idx, row in enumerate(_read_jsonl(path)):
+            q = row.get("question", "")
+            rec = {
+                "row_id": f"steered_gemma:{path.parent.name}:{line_idx}",
+                "source": "steered_gemma",
+                "question": q,
+                "response": row.get("response"),
+                "question_type": question_type_of(q),
+            }
+            for k in ("direction_set", "cap_mode", "layer_set", "condition",
+                      "pair_idx", "cap_threshold", "pairs"):
+                if k in row:
+                    rec[k] = row[k]
+            records.append(rec)
+    return records
+
+
 LOADERS = {
     "informed": load_informed,
     "capping_v2": load_capping_v2,
     "capping_v3": load_capping_v3,
     "uncapped": load_uncapped,
+    "gemma_baseline": load_gemma_baseline,
+    "steered_gemma": load_steered_gemma,
 }
 
 
